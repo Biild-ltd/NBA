@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     # App
     MEMBERSHIP_FEE_KOBO: int = 500000
     PUBLIC_BASE_URL: str = "http://localhost:8000"
+    FRONTEND_ORIGIN: str = ""
     ENVIRONMENT: str = "development"
 
 

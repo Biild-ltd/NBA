@@ -46,7 +46,7 @@ app.state.limiter = limiter
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 _allowed_origins = (
-    [settings.PUBLIC_BASE_URL]
+    list(filter(None, [settings.PUBLIC_BASE_URL, settings.FRONTEND_ORIGIN]))
     if settings.ENVIRONMENT == "production"
     else [
         "http://localhost:3000",
