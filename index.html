@@ -285,6 +285,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
   </nav>
 </div>
 <script>
+const API_URL='https://nba-prod-512194400474.africa-south1.run.app/v1';
 var members=JSON.parse(localStorage.getItem('nba_m')||'[]');
 var photoData=null,aiOk=false,pending={},currentM=null,userName='Member';
 function save(){localStorage.setItem('nba_m',JSON.stringify(members));}
@@ -317,11 +318,15 @@ async function runAICheck(dataUrl){
   box.className='ai-box checking';document.getElementById('aiMsg').textContent='Checking photo compliance…';document.getElementById('aiSpin').style.display='block';
   try{
     var base64=dataUrl.split(',')[1];var mediaType=dataUrl.split(';')[0].split(':')[1];
-    var res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:120,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:mediaType,data:base64}},{type:'text',text:'Is this a valid passport-style photo? Criteria: single person, face forward, plain/white/light background, no sunglasses, no hats, not a cartoon. Reply ONLY with raw JSON: {"pass":true,"reason":"short sentence"} or {"pass":false,"reason":"short sentence"}'}]}]})});
-    var data=await res.json();var txt=((data.content&&data.content[0]?data.content[0].text:'{}')||'{}').trim().replace(/^```[^\n]*\n?|```$/g,'').trim();var result=JSON.parse(txt);
+    var byteStr=atob(base64);var arr=new Uint8Array(byteStr.length);for(var i=0;i<byteStr.length;i++)arr[i]=byteStr.charCodeAt(i);
+    var blob=new Blob([arr],{type:mediaType});var form=new FormData();form.append('photo',blob,'photo.'+(mediaType.split('/')[1]||'jpg'));
+    var token=localStorage.getItem('nba_token')||'';
+    var res=await fetch(API_URL+'/photos/validate',{method:'POST',headers:token?{'Authorization':'Bearer '+token}:{},body:form});
+    var data=await res.json();
     document.getElementById('aiSpin').style.display='none';
-    if(result.pass){box.className='ai-box pass';document.getElementById('aiMsg').innerHTML='<strong>&#10003; Photo approved</strong> &#8212; '+result.reason;aiOk=true;}
-    else{box.className='ai-box fail';document.getElementById('aiMsg').innerHTML='<strong>Photo rejected:</strong> '+result.reason+'. Please upload a different photo.';photoData=null;aiOk=false;pzImg.src='';pzPrev.style.display='none';pzPh.style.display='block';pInput.value='';}
+    if(res.ok&&data.passed){box.className='ai-box pass';document.getElementById('aiMsg').innerHTML='<strong>&#10003; Photo approved</strong> &#8212; Score: '+(Math.round((data.score||1)*100))+'%';aiOk=true;}
+    else if(!res.ok&&data.error&&data.error.code==='PHOTO_REJECTED'){var reasons=(data.error.details&&data.error.details.failures||[]).join(' ');box.className='ai-box fail';document.getElementById('aiMsg').innerHTML='<strong>Photo rejected:</strong> '+(reasons||'Photo did not pass compliance checks.')+' Please upload a different photo.';photoData=null;aiOk=false;pzImg.src='';pzPrev.style.display='none';pzPh.style.display='block';pInput.value='';}
+    else{throw new Error((data.error&&data.error.message)||'Validation failed');}
   }catch(e){document.getElementById('aiSpin').style.display='none';document.getElementById('aiBox').className='ai-box pass';document.getElementById('aiMsg').innerHTML='<strong>&#10003; Photo accepted</strong> (AI check unavailable in demo mode)';aiOk=true;}
 }
 function showErr(msg){var el=document.getElementById('fErr');el.textContent=msg;el.style.display='block';setTimeout(function(){el.style.display='none';},5000);}
