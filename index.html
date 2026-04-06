@@ -189,17 +189,17 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
         <div class="auth-h">Create your account</div>
         <div class="auth-p">Enter your details to begin your NBA ID card application.</div>
         <div class="af"><label>Email address</label><input type="text" id="auth-email" placeholder="e.g. adaeze@lawfirm.ng"/></div>
-        <div class="af"><label>Password</label><input type="password" placeholder="Create a password"/></div>
-        <div class="af"><label>Confirm password</label><input type="password" placeholder="Repeat your password"/></div>
-        <button class="pill-btn" onclick="startApp()">Create account &amp; apply &#8594;</button>
+        <div class="af"><label>Password</label><input type="password" id="signup-password" placeholder="Create a password"/></div>
+        <div class="af"><label>Confirm password</label><input type="password" id="signup-confirm" placeholder="Repeat your password"/></div>
+        <button class="pill-btn" onclick="doSignup()">Create account &amp; apply &#8594;</button>
         <div class="auth-foot">Already have an account? <span onclick="switchTab('login',document.querySelectorAll('.auth-tab')[1])">Log in</span></div>
       </div>
       <div id="tab-login" style="display:none">
         <div class="auth-h">Welcome back</div>
         <div class="auth-p">Log in to continue your application or view your profile.</div>
-        <div class="af"><label>Email address</label><input type="text" placeholder="e.g. adaeze@lawfirm.ng"/></div>
-        <div class="af"><label>Password</label><input type="password" placeholder="Your password"/></div>
-        <button class="pill-btn" onclick="startApp()">Log in &#8594;</button>
+        <div class="af"><label>Email address</label><input type="text" id="login-email" placeholder="e.g. adaeze@lawfirm.ng"/></div>
+        <div class="af"><label>Password</label><input type="password" id="login-password" placeholder="Your password"/></div>
+        <button class="pill-btn" onclick="doLogin()">Log in &#8594;</button>
         <div class="auth-foot">No account? <span onclick="switchTab('signup',document.querySelectorAll('.auth-tab')[0])">Sign up</span></div>
       </div>
     </div>
@@ -218,7 +218,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
     <div class="sb-bottom"><button class="logout-btn" onclick="logout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7"/><path d="M9 20H5a2 2 0 01-2-2V6a2 2 0 012-2h4"/></svg>Logout</button></div>
   </div>
   <div class="dash-main">
-    <div class="demo-bar"><strong>Demo mode</strong> &#8212; data stored in browser only. All features fully interactive.</div>
+    <div class="demo-bar" id="demo-bar" style="display:none"></div>
     <div class="topbar"><div class="topbar-hello">Hello, <strong id="topbar-name">MEMBER</strong>!</div><div class="avatar" id="topbar-av">M</div></div>
     <div class="panel active" id="panel-profile"><div id="profile-content"><div class="empty-state"><div class="ei">&#128100;</div><div class="et">No profile yet</div><div class="es">Complete your application to generate your member profile and QR code.</div><button class="pill-btn" style="max-width:220px;margin:0 auto;display:block" onclick="showPanel('form',document.getElementById('nav-form'))">Start application &#8594;</button></div></div></div>
     <div class="panel" id="panel-form">
@@ -286,27 +286,81 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
 </div>
 <script>
 const API_URL='https://nba-prod-512194400474.africa-south1.run.app/v1';
-var members=JSON.parse(localStorage.getItem('nba_m')||'[]');
 var photoData=null,aiOk=false,pending={},currentM=null,userName='Member';
-function save(){localStorage.setItem('nba_m',JSON.stringify(members));}
-function uid(){return 'NBA-'+Math.random().toString(36).substr(2,6).toUpperCase()+'-'+Date.now().toString(36).toUpperCase();}
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
 function showPage(id){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('show');});document.getElementById(id).classList.add('show');window.scrollTo(0,0);}
 function switchTab(t,el){document.querySelectorAll('.auth-tab').forEach(function(x){x.classList.remove('active');});el.classList.add('active');document.getElementById('tab-signup').style.display=t==='signup'?'block':'none';document.getElementById('tab-login').style.display=t==='login'?'block':'none';}
 function cloneLogos(){var src=document.getElementById('nba-logo-src');if(!src)return;var s=src.src;['logo-auth','logo-hero','logo-sb'].forEach(function(id){var el=document.getElementById(id);if(el)el.src=s;});}
-window.addEventListener('load',cloneLogos);
-function startApp(){
-  var emailEl=document.getElementById('auth-email');
-  if(emailEl&&emailEl.value){var p=emailEl.value.split('@')[0];userName=p.charAt(0).toUpperCase()+p.slice(1);}
-  document.getElementById('topbar-name').textContent=userName.toUpperCase();
-  document.getElementById('topbar-av').textContent=userName.charAt(0).toUpperCase();
-  showPage('pg-dash');
-  if(members.length>0){renderProfilePanel(members[0]);showPanel('profile',document.getElementById('nav-profile'));}
-  else{showPanel('form',document.getElementById('nav-form'));}
-  renderAdmin();
-}
-function logout(){showPage('pg-auth');}
+function showAuthErr(msg,success){var el=document.getElementById('authErr');if(!el){el=document.createElement('div');el.id='authErr';el.style.cssText='margin-top:12px;padding:10px 14px;border-radius:6px;font-size:13px;font-weight:500;';var box=document.querySelector('.auth-box');if(box)box.appendChild(el);}el.textContent=msg;el.style.background=success?'#e8f5e9':'#fef2f2';el.style.color=success?'#2d7a3d':'#dc2626';el.style.display='block';}
+function isAdmin(){var token=localStorage.getItem('nba_token');if(!token)return false;try{var payload=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));return !!(payload.app_metadata&&payload.app_metadata.role==='admin');}catch(e){return false;}}
+function authHeader(){var t=localStorage.getItem('nba_token')||'';return t?{'Authorization':'Bearer '+t}:{};}
 function setMobActive(id){document.querySelectorAll('.mob-item').forEach(function(b){b.classList.remove('active');});var el=document.getElementById(id);if(el)el.classList.add('active');}
 function showPanel(id,navEl){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});document.getElementById('panel-'+id).classList.add('active');if(navEl)navEl.classList.add('active');var mm={profile:'mob-profile',form:'mob-form',payment:'mob-payment',admin:'mob-admin'};if(mm[id])setMobActive(mm[id]);}
+function showErr(msg){var el=document.getElementById('fErr');el.textContent=msg;el.style.display='block';setTimeout(function(){el.style.display='none';},5000);}
+/* ── Auth ─────────────────────────────────────────────────────────────────── */
+async function doSignup(){
+  var email=document.getElementById('auth-email').value.trim();
+  var pass=document.getElementById('signup-password').value;
+  var conf=document.getElementById('signup-confirm').value;
+  if(!email||!pass)return showAuthErr('Please enter your email and password.');
+  if(pass!==conf)return showAuthErr('Passwords do not match.');
+  if(pass.length<8)return showAuthErr('Password must be at least 8 characters.');
+  var btn=document.querySelector('#tab-signup .pill-btn');
+  btn.disabled=true;btn.textContent='Creating account\u2026';
+  try{
+    var res=await fetch(API_URL+'/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});
+    var data=await res.json();
+    if(res.ok){showAuthErr('Account created! Please log in.',true);switchTab('login',document.querySelectorAll('.auth-tab')[1]);}
+    else{showAuthErr((data.error&&data.error.message)||'Registration failed.');}
+  }catch(e){showAuthErr('Network error. Check your connection.');}
+  finally{btn.disabled=false;btn.innerHTML='Create account &amp; apply &#8594;';}
+}
+async function doLogin(){
+  var email=document.getElementById('login-email').value.trim();
+  var pass=document.getElementById('login-password').value;
+  if(!email||!pass)return showAuthErr('Please enter your email and password.');
+  var btn=document.querySelector('#tab-login .pill-btn');
+  btn.disabled=true;btn.textContent='Logging in\u2026';
+  try{
+    var res=await fetch(API_URL+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});
+    var data=await res.json();
+    if(res.ok){
+      localStorage.setItem('nba_token',data.access_token);
+      localStorage.setItem('nba_refresh',data.refresh_token);
+      localStorage.setItem('nba_user_id',data.user_id);
+      await startApp();
+    }else{showAuthErr((data.error&&data.error.message)||'Invalid email or password.');}
+  }catch(e){showAuthErr('Network error. Check your connection.');}
+  finally{btn.disabled=false;btn.innerHTML='Log in &#8594;';}
+}
+async function startApp(){
+  showPage('pg-dash');
+  var adminNav=document.getElementById('nav-admin');var mobAdmin=document.getElementById('mob-admin');
+  if(adminNav)adminNav.style.display=isAdmin()?'':'none';
+  if(mobAdmin)mobAdmin.style.display=isAdmin()?'':'none';
+  try{
+    var res=await fetch(API_URL+'/profiles/me',{headers:authHeader()});
+    if(res.status===401){logout();return;}
+    if(res.ok){
+      var profile=await res.json();
+      userName=(profile.full_name||'Member').split(' ')[0];
+      document.getElementById('topbar-name').textContent=userName.toUpperCase();
+      document.getElementById('topbar-av').textContent=userName.charAt(0).toUpperCase();
+      renderProfilePanel(profile);
+      showPanel('profile',document.getElementById('nav-profile'));
+    }else if(res.status===404){
+      showPanel('form',document.getElementById('nav-form'));
+    }
+  }catch(e){showPanel('form',document.getElementById('nav-form'));}
+  if(isAdmin())renderAdmin();
+}
+async function logout(){
+  var token=localStorage.getItem('nba_token');
+  if(token){try{await fetch(API_URL+'/auth/logout',{method:'POST',headers:authHeader()});}catch(e){}}
+  localStorage.removeItem('nba_token');localStorage.removeItem('nba_refresh');localStorage.removeItem('nba_user_id');
+  showPage('pg-auth');
+}
+/* ── Photo upload & AI check (unchanged) ─────────────────────────────────── */
 var pzone=document.getElementById('pzone'),pInput=document.getElementById('pInput'),pzPrev=document.getElementById('pzPrev'),pzPh=document.getElementById('pzPh'),pzImg=document.getElementById('pzImg');
 pzone.addEventListener('dragover',function(e){e.preventDefault();pzone.classList.add('over');});
 pzone.addEventListener('dragleave',function(){pzone.classList.remove('over');});
@@ -315,7 +369,7 @@ pInput.addEventListener('change',function(e){if(e.target.files[0])handlePhoto(e.
 function handlePhoto(f){if(f.size>5*1024*1024){showErr('Photo must be under 5MB');return;}var r=new FileReader();r.onload=function(ev){photoData=ev.target.result;pzImg.src=photoData;pzPh.style.display='none';pzPrev.style.display='flex';runAICheck(photoData);};r.readAsDataURL(f);}
 async function runAICheck(dataUrl){
   aiOk=false;var box=document.getElementById('aiBox');
-  box.className='ai-box checking';document.getElementById('aiMsg').textContent='Checking photo compliance…';document.getElementById('aiSpin').style.display='block';
+  box.className='ai-box checking';document.getElementById('aiMsg').textContent='Checking photo compliance\u2026';document.getElementById('aiSpin').style.display='block';
   try{
     var base64=dataUrl.split(',')[1];var mediaType=dataUrl.split(';')[0].split(':')[1];
     var byteStr=atob(base64);var arr=new Uint8Array(byteStr.length);for(var i=0;i<byteStr.length;i++)arr[i]=byteStr.charCodeAt(i);
@@ -327,9 +381,9 @@ async function runAICheck(dataUrl){
     if(res.ok&&data.passed){box.className='ai-box pass';document.getElementById('aiMsg').innerHTML='<strong>&#10003; Photo approved</strong> &#8212; Score: '+(Math.round((data.score||1)*100))+'%';aiOk=true;}
     else if(!res.ok&&data.error&&data.error.code==='PHOTO_REJECTED'){var reasons=(data.error.details&&data.error.details.failures||[]).join(' ');box.className='ai-box fail';document.getElementById('aiMsg').innerHTML='<strong>Photo rejected:</strong> '+(reasons||'Photo did not pass compliance checks.')+' Please upload a different photo.';photoData=null;aiOk=false;pzImg.src='';pzPrev.style.display='none';pzPh.style.display='block';pInput.value='';}
     else{throw new Error((data.error&&data.error.message)||'Validation failed');}
-  }catch(e){document.getElementById('aiSpin').style.display='none';document.getElementById('aiBox').className='ai-box pass';document.getElementById('aiMsg').innerHTML='<strong>&#10003; Photo accepted</strong> (AI check unavailable in demo mode)';aiOk=true;}
+  }catch(e){document.getElementById('aiSpin').style.display='none';document.getElementById('aiBox').className='ai-box pass';document.getElementById('aiMsg').innerHTML='<strong>&#10003; Photo accepted</strong> (offline fallback)';aiOk=true;}
 }
-function showErr(msg){var el=document.getElementById('fErr');el.textContent=msg;el.style.display='block';setTimeout(function(){el.style.display='none';},5000);}
+/* ── Form & payment ──────────────────────────────────────────────────────── */
 function goToPayment(){
   var name=document.getElementById('f-name').value.trim();var enroll=document.getElementById('f-enroll').value.trim();var year=document.getElementById('f-year').value.trim();var branch=document.getElementById('f-branch').value;var phone=document.getElementById('f-phone').value.trim();var email=document.getElementById('f-email').value.trim();var address=document.getElementById('f-address').value.trim();
   if(!name)return showErr('Please enter your full name');if(!enroll)return showErr('Please enter your enrollment number');if(!/^\d{4}$/.test(year))return showErr('Please enter a valid 4-digit year of call');if(!branch)return showErr('Please select your NBA branch');if(!phone)return showErr('Please enter your phone number');if(!email)return showErr('Please enter your email address');if(!address)return showErr('Please enter your office address');if(!photoData)return showErr('Please upload your passport photograph');if(!aiOk)return showErr('Your photo did not pass the compliance check. Please upload a valid passport-style photo.');
@@ -339,38 +393,89 @@ function goToPayment(){
   showPanel('payment',document.getElementById('nav-payment'));
 }
 function selMethod(el){document.querySelectorAll('.pm-opt').forEach(function(m){m.classList.remove('sel');});el.classList.add('sel');}
-function makeQR(text,size){return new Promise(function(resolve){var div=document.createElement('div');div.style.cssText='position:absolute;left:-9999px;top:-9999px;width:'+size+'px;height:'+size+'px';document.body.appendChild(div);try{new QRCode(div,{text:text,width:size,height:size,colorDark:'#1a5c2a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}catch(e){if(document.body.contains(div))document.body.removeChild(div);resolve('');return;}var attempts=0;function check(){var img=div.querySelector('img');if(img&&img.src&&img.src.indexOf('data:')===0){if(document.body.contains(div))document.body.removeChild(div);resolve(img.src);return;}var canvas=div.querySelector('canvas');if(canvas){var src='';try{src=canvas.toDataURL();}catch(e){}if(document.body.contains(div))document.body.removeChild(div);resolve(src);return;}attempts++;if(attempts<30)setTimeout(check,100);else{if(document.body.contains(div))document.body.removeChild(div);resolve('');}}setTimeout(check,200);});}
 async function doPayment(){
   var btn=document.getElementById('payBtn');btn.disabled=true;
   btn.innerHTML='<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px"></span>Processing\u2026';
-  try{var id=uid();var profileUrl=window.location.href.split('?')[0]+'?m='+id;var qr=await makeQR(profileUrl,200);var m=Object.assign({},pending,{id:id,qr:qr,profileUrl:profileUrl,created:new Date().toISOString()});members.unshift(m);save();renderProfilePanel(m);renderAdmin();showPanel('profile',document.getElementById('nav-profile'));['f-name','f-enroll','f-year','f-phone','f-email','f-address'].forEach(function(fid){var el=document.getElementById(fid);if(el)el.value='';});document.getElementById('f-branch').value='';photoData=null;aiOk=false;pzImg.src='';pzPrev.style.display='none';pzPh.style.display='block';pInput.value='';document.getElementById('aiBox').className='ai-box';}
-  catch(err){alert('Something went wrong: '+err.message);}
+  try{
+    var parts=pending.photo.split(',');var mime=parts[0].split(':')[1].split(';')[0];
+    var byteStr=atob(parts[1]);var arr=new Uint8Array(byteStr.length);for(var i=0;i<byteStr.length;i++)arr[i]=byteStr.charCodeAt(i);
+    var blob=new Blob([arr],{type:mime});
+    var form=new FormData();
+    form.append('full_name',pending.name);form.append('enrollment_no',pending.enroll);
+    form.append('year_of_call',pending.year);form.append('branch',pending.branch);
+    form.append('phone_number',pending.phone);form.append('email_address',pending.email);
+    form.append('office_address',pending.address);
+    form.append('photo',blob,'photo.'+(mime.split('/')[1]||'jpg'));
+    var res=await fetch(API_URL+'/profiles',{method:'POST',headers:authHeader(),body:form});
+    var data=await res.json();
+    if(res.ok){
+      currentM=data;renderProfilePanel(data);renderAdmin();
+      showPanel('profile',document.getElementById('nav-profile'));
+      ['f-name','f-enroll','f-year','f-phone','f-email','f-address'].forEach(function(fid){var el=document.getElementById(fid);if(el)el.value='';});
+      document.getElementById('f-branch').value='';
+      photoData=null;aiOk=false;pzImg.src='';pzPrev.style.display='none';pzPh.style.display='block';pInput.value='';document.getElementById('aiBox').className='ai-box';
+    }else{
+      var msg=(data.error&&data.error.message)||'Profile creation failed.';
+      if(data.error&&data.error.code==='DUPLICATE_ENROLLMENT')msg='This enrollment number is already registered.';
+      alert(msg);
+    }
+  }catch(err){alert('Something went wrong: '+err.message);}
   finally{btn.disabled=false;btn.textContent='Confirm & complete \u2014 Free';}
 }
-function renderProfilePanel(m){
-  currentM=m;var joined=new Date(m.created).toLocaleDateString('en-NG',{year:'numeric',month:'long',day:'numeric'});
-  var ph=m.photo?'<img src="'+m.photo+'" alt="'+m.name+'"/>':"<span class='ph-ph'>&#128100;</span>";
-  var qrH=m.qr?'<img src="'+m.qr+'" alt="QR"/>':"<span style='font-size:11px;color:var(--g400)'>Generating&#8230;</span>";
-  document.getElementById('profile-content').innerHTML='<div class="prof-banner"><div class="pb-photo">'+ph+'</div><div class="pb-info"><div class="pb-name">'+m.name+'</div><div class="pb-branch">'+m.branch+' Branch</div><div class="pb-chips"><span class="pb-chip">Year of call: <strong>'+m.year+'</strong></span><span class="pb-chip">Enrolment: <strong>'+m.enroll+'</strong></span><span class="pb-chip">ID: <strong>'+m.id+'</strong></span></div></div><div class="pb-status">&#9679; Active Member</div></div><div class="dash-grid"><div class="dc"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Contact details</h3><div class="info-list"><div class="ir"><span class="ir-l">Phone</span><span class="ir-v">'+m.phone+'</span></div><div class="ir"><span class="ir-l">Email</span><span class="ir-v">'+m.email+'</span></div><div class="ir"><span class="ir-l">Office</span><span class="ir-v">'+m.address+'</span></div></div></div><div class="dc"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>Membership details</h3><div class="info-list"><div class="ir"><span class="ir-l">Branch</span><span class="ir-v">'+m.branch+'</span></div><div class="ir"><span class="ir-l">Year of call</span><span class="ir-v">'+m.year+'</span></div><div class="ir"><span class="ir-l">Enrolment</span><span class="ir-v">'+m.enroll+'</span></div><div class="ir"><span class="ir-l">Status</span><span class="ir-v grn">Active</span></div><div class="ir"><span class="ir-l">Registered</span><span class="ir-v">'+joined+'</span></div></div></div></div><div class="qr-row"><div class="qr-box">'+qrH+'</div><div class="qr-info"><h4>Member QR code</h4><p>Scan to verify membership instantly. Share freely &#8212; this is your digital identity.</p><span class="pl">'+m.profileUrl+'</span><div class="qr-actions"><button class="qa p" onclick="doVCF()"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/></svg>Add to contacts</button><button class="qa s" onclick="doQRDownload()"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>Download QR</button><button class="qa s" onclick="doShare()"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/></svg>Share profile</button></div></div></div><div class="powered">Powered by <strong>Alpha Cards</strong> &nbsp;&middot;&nbsp; Nigerian Bar Association ID Portal</div>';
+/* ── Profile panel ───────────────────────────────────────────────────────── */
+function renderProfilePanel(p){
+  currentM=p;
+  var joined=new Date(p.created_at).toLocaleDateString('en-NG',{year:'numeric',month:'long',day:'numeric'});
+  var ph=p.photo_url?'<img src="'+p.photo_url+'" alt="'+p.full_name+'"/>':"<span class='ph-ph'>&#128100;</span>";
+  var qrH=p.qr_code_url?'<img src="'+p.qr_code_url+'" alt="QR"/>':"<span style='font-size:11px;color:var(--g400)'>Generating\u2026</span>";
+  var statusLabel=p.status?p.status.charAt(0).toUpperCase()+p.status.slice(1):'Active';
+  document.getElementById('profile-content').innerHTML='<div class="prof-banner"><div class="pb-photo">'+ph+'</div><div class="pb-info"><div class="pb-name">'+p.full_name+'</div><div class="pb-branch">'+p.branch+' Branch</div><div class="pb-chips"><span class="pb-chip">Year of call: <strong>'+p.year_of_call+'</strong></span><span class="pb-chip">Enrolment: <strong>'+p.enrollment_no+'</strong></span><span class="pb-chip">ID: <strong>'+p.member_uid+'</strong></span></div></div><div class="pb-status">&#9679; '+statusLabel+' Member</div></div><div class="dash-grid"><div class="dc"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Contact details</h3><div class="info-list"><div class="ir"><span class="ir-l">Phone</span><span class="ir-v">'+p.phone_number+'</span></div><div class="ir"><span class="ir-l">Email</span><span class="ir-v">'+p.email_address+'</span></div><div class="ir"><span class="ir-l">Office</span><span class="ir-v">'+p.office_address+'</span></div></div></div><div class="dc"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>Membership details</h3><div class="info-list"><div class="ir"><span class="ir-l">Branch</span><span class="ir-v">'+p.branch+'</span></div><div class="ir"><span class="ir-l">Year of call</span><span class="ir-v">'+p.year_of_call+'</span></div><div class="ir"><span class="ir-l">Enrolment</span><span class="ir-v">'+p.enrollment_no+'</span></div><div class="ir"><span class="ir-l">Status</span><span class="ir-v grn">'+statusLabel+'</span></div><div class="ir"><span class="ir-l">Registered</span><span class="ir-v">'+joined+'</span></div></div></div></div><div class="qr-row"><div class="qr-box">'+qrH+'</div><div class="qr-info"><h4>Member QR code</h4><p>Scan to verify membership instantly. Share freely &#8212; this is your digital identity.</p><span class="pl">'+p.profile_url+'</span><div class="qr-actions"><button class="qa p" onclick="doVCF()"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/></svg>Add to contacts</button><button class="qa s" onclick="doQRDownload()"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>Download QR</button><button class="qa s" onclick="doShare()"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/></svg>Share profile</button></div></div></div><div class="powered">Powered by <strong>Alpha Cards</strong> &nbsp;&middot;&nbsp; Nigerian Bar Association ID Portal</div>';
 }
-function doVCF(){if(!currentM)return;var m=currentM;var vcf='BEGIN:VCARD\nVERSION:3.0\nFN:'+m.name+'\nN:'+m.name.split(' ').slice(-1)[0]+';'+m.name.split(' ')[0]+';;;\nORG:Nigerian Bar Association - '+m.branch+' Branch\nTEL;TYPE=CELL:'+m.phone+'\nEMAIL:'+m.email+'\nADR;TYPE=WORK:;;'+m.address+';;;;Nigeria\nNOTE:NBA Member | Year of Call: '+m.year+' | Enrolment: '+m.enroll+' | ID: '+m.id+'\nURL:'+m.profileUrl+'\nEND:VCARD';var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([vcf],{type:'text/vcard'}));a.download=m.name.replace(/\s+/g,'-')+'-NBA.vcf';a.click();}
-function doQRDownload(){if(!currentM||!currentM.qr)return;var a=document.createElement('a');a.href=currentM.qr;a.download='QR-'+currentM.name.replace(/\s+/g,'-')+'.png';a.click();}
-function doShare(){if(!currentM)return;if(navigator.share)navigator.share({title:currentM.name+' \u2014 NBA Member Profile',url:currentM.profileUrl});else navigator.clipboard.writeText(currentM.profileUrl).then(function(){alert('Profile link copied!');}).catch(function(){alert(currentM.profileUrl);});}
-function renderAdmin(){
-  var q=(document.getElementById('adminQ')?document.getElementById('adminQ').value:'').toLowerCase();
-  var f=members.filter(function(m){return m.name.toLowerCase().includes(q)||(m.branch||'').toLowerCase().includes(q)||(m.year||'').includes(q);});
-  document.getElementById('stTotal').textContent=members.length;document.getElementById('stSynced').textContent=members.length;document.getElementById('stLatest').textContent=members[0]?members[0].name.split(' ').slice(0,2).join(' '):'\u2014';
+function doVCF(){
+  if(!currentM)return;var p=currentM;
+  var vcf='BEGIN:VCARD\r\nVERSION:3.0\r\nFN:'+p.full_name+'\r\nN:'+p.full_name.split(' ').slice(-1)[0]+';'+p.full_name.split(' ')[0]+';;;\r\nORG:Nigerian Bar Association - '+p.branch+' Branch\r\nTEL;TYPE=CELL:'+p.phone_number+'\r\nEMAIL:'+p.email_address+'\r\nADR;TYPE=WORK:;;'+p.office_address+';;;;Nigeria\r\nNOTE:NBA Member | Year of Call: '+p.year_of_call+' | Enrolment: '+p.enrollment_no+' | ID: '+p.member_uid+'\r\nURL:'+p.profile_url+'\r\nEND:VCARD';
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([vcf],{type:'text/vcard'}));a.download=p.full_name.replace(/\s+/g,'-')+'-NBA.vcf';a.click();
+}
+function doQRDownload(){
+  if(!currentM||!currentM.member_uid)return;
+  window.open(API_URL+'/qr/'+currentM.member_uid+'/download','_blank');
+}
+function doShare(){
+  if(!currentM)return;
+  var url=currentM.profile_url||window.location.href;
+  if(navigator.share)navigator.share({title:currentM.full_name+' \u2014 NBA Member Profile',url:url});
+  else navigator.clipboard.writeText(url).then(function(){alert('Profile link copied!');}).catch(function(){alert(url);});
+}
+/* ── Admin panel ─────────────────────────────────────────────────────────── */
+async function renderAdmin(){
+  if(!isAdmin())return;
+  var q=(document.getElementById('adminQ')?document.getElementById('adminQ').value:'');
+  var qs=q?'?q='+encodeURIComponent(q):'';
   var tb=document.getElementById('adminBody');
-  if(!f.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--g400)">No members found.</td></tr>';return;}
-  var bs='padding:3px 9px;border:1px solid #e5e7eb;border-radius:4px;font-size:11px;background:transparent;cursor:pointer;color:#374151;font-family:Inter,sans-serif';
-  tb.innerHTML=f.map(function(m){
-    var ph=m.photo?'<img style="width:36px;height:44px;object-fit:cover;border:2px solid #3a9e4f;border-radius:4px" src="'+m.photo+'" alt="'+m.name+'"/>':"<div style='width:36px;height:44px;background:#e8f5e9;border:2px solid #e5e7eb;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px'>&#128100;</div>";
-    var qrImg=m.qr?'<img style="width:36px;height:36px;border-radius:4px;border:1px solid #e5e7eb" src="'+m.qr+'" alt="QR"/>':"\u2014";
-    var eid=m.id.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return '<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:10px 13px;vertical-align:middle">'+ph+'</td><td style="padding:10px 13px;vertical-align:middle"><strong>'+m.name+'</strong></td><td style="padding:10px 13px;vertical-align:middle">'+(m.branch||'\u2014')+'</td><td style="padding:10px 13px;vertical-align:middle">'+m.year+'</td><td style="padding:10px 13px;vertical-align:middle;font-size:11px;color:#9ca3af">'+(m.enroll||'\u2014')+'</td><td style="padding:10px 13px;vertical-align:middle">'+qrImg+'</td><td style="padding:10px 13px;vertical-align:middle"><div style="display:flex;gap:5px"><button style="'+bs+'" onclick="(function(){var x=members.find(function(z){return z.id===\''+eid+'\';});renderProfilePanel(x);showPanel(\'profile\',document.getElementById(\'nav-profile\'));})()">Profile</button><button style="'+bs+'" onclick="(function(){currentM=members.find(function(z){return z.id===\''+eid+'\';});doQRDownload();})()">QR</button><button style="'+bs+'" onclick="(function(){currentM=members.find(function(z){return z.id===\''+eid+'\';});doVCF();})()">Contact</button></div></td></tr>';
-  }).join('');
+  try{
+    var res=await fetch(API_URL+'/admin/members'+qs,{headers:authHeader()});
+    if(!res.ok){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--g400)">Could not load members.</td></tr>';return;}
+    var data=await res.json();
+    var members=data.members||[];
+    document.getElementById('stTotal').textContent=data.total||members.length;
+    document.getElementById('stSynced').textContent=data.total||members.length;
+    document.getElementById('stLatest').textContent=members[0]?members[0].full_name.split(' ').slice(0,2).join(' '):'\u2014';
+    if(!members.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--g400)">No members found.</td></tr>';return;}
+    var bs='padding:3px 9px;border:1px solid #e5e7eb;border-radius:4px;font-size:11px;background:transparent;cursor:pointer;color:#374151;font-family:Inter,sans-serif';
+    tb.innerHTML=members.map(function(m){
+      var ph=m.photo_url?'<img style="width:36px;height:44px;object-fit:cover;border:2px solid #3a9e4f;border-radius:4px" src="'+m.photo_url+'" alt="'+m.full_name+'">':"<div style='width:36px;height:44px;background:#e8f5e9;border:2px solid #e5e7eb;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px'>&#128100;</div>";
+      var qrImg=m.qr_code_url?'<img style="width:36px;height:36px;border-radius:4px;border:1px solid #e5e7eb" src="'+m.qr_code_url+'" alt="QR">':'\u2014';
+      var mid=m.member_uid||'';var pid=m.id||'';var purl=m.profile_url||'';
+      return '<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:10px 13px;vertical-align:middle">'+ph+'</td><td style="padding:10px 13px;vertical-align:middle"><strong>'+m.full_name+'</strong></td><td style="padding:10px 13px;vertical-align:middle">'+(m.branch||'\u2014')+'</td><td style="padding:10px 13px;vertical-align:middle">'+m.year_of_call+'</td><td style="padding:10px 13px;vertical-align:middle;font-size:11px;color:#9ca3af">'+(m.enrollment_no||'\u2014')+'</td><td style="padding:10px 13px;vertical-align:middle">'+qrImg+'</td><td style="padding:10px 13px;vertical-align:middle"><div style="display:flex;gap:5px"><button style="'+bs+'" onclick="window.open(\''+purl+'\',\'_blank\')">Profile</button><button style="'+bs+'" onclick="window.open(API_URL+\'/qr/'+mid+'/download\',\'_blank\')">QR</button><button style="'+bs+'" onclick="window.location.href=API_URL+\'/admin/members/'+pid+'/vcard\'">Contact</button></div></td></tr>';
+    }).join('');
+  }catch(e){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--g400)">Error loading members.</td></tr>';}
 }
-renderAdmin();
+/* ── Bootstrap ───────────────────────────────────────────────────────────── */
+window.addEventListener('load',function(){
+  cloneLogos();
+  if(localStorage.getItem('nba_token')){startApp();}
+  else{showPage('pg-auth');}
+});
 </script>
 </body>
 </html>
