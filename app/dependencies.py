@@ -1,8 +1,12 @@
+import logging
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import ExpiredSignatureError, JWTError, jwt
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/auth/login")
 
@@ -22,12 +26,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         )
         return payload
     except ExpiredSignatureError:
+        logger.warning("JWT expired: alg=HS256 secret_len=%d", len(settings.SUPABASE_JWT_SECRET))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="INVALID_TOKEN",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except JWTError:
+    except JWTError as exc:
+        logger.warning("JWT decode failed: %s | alg=HS256 secret_len=%d", exc, len(settings.SUPABASE_JWT_SECRET))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="INVALID_TOKEN",
