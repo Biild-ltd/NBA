@@ -21,7 +21,7 @@ def test_branches_content(client):
     data = response.json()
     branches = data["branches"]
     # Check a representative set of branches are present
-    for expected in ["Lagos", "Abuja", "Port Harcourt", "Kano", "Enugu"]:
+    for expected in ["Lagos Branch", "Abuja Branch (Unity Bar)", "Port Harcourt Branch", "Kano Branch", "Enugu Branch"]:
         assert expected in branches, f"Expected branch '{expected}' not found"
 
 
