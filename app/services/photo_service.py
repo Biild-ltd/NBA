@@ -66,7 +66,11 @@ def validate_photo_stage1(data: bytes) -> str:
     failures: list[str] = []
 
     # MIME type — detect from content, never trust the file extension
-    mime = magic.from_buffer(data, mime=True)
+    try:
+        mime = magic.from_buffer(data, mime=True)
+    except Exception as exc:
+        logger.error("MIME detection failed: %s", exc)
+        mime = ""
     if mime not in _ALLOWED_MIMES:
         failures.append(f"Unsupported file type '{mime}'. Only JPEG and PNG are accepted.")
 
@@ -184,7 +188,11 @@ async def validate_photo_stage2(data: bytes, mime_type: str) -> PhotoValidationR
     image_hash = _compute_md5(data)
 
     # 1. Check cache
-    cached_raw = await asyncio.to_thread(_get_cached_result_sync, image_hash)
+    try:
+        cached_raw = await asyncio.to_thread(_get_cached_result_sync, image_hash)
+    except Exception as exc:
+        logger.warning("Cache query failed, proceeding without cache: %s", exc)
+        cached_raw = None
     if cached_raw is not None:
         logger.debug("Photo validation cache hit for hash %s", image_hash)
         return PhotoValidationResult(**cached_raw)

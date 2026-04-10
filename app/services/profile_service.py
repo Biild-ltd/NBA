@@ -96,7 +96,18 @@ async def create_profile(
     else:
         raise HTTPException(status_code=500, detail="INTERNAL_ERROR")
 
-    photo_url = await storage_service.upload_photo(user_id, photo_bytes, mime)
+    try:
+        photo_url = await storage_service.upload_photo(user_id, photo_bytes, mime)
+    except Exception as exc:
+        logger.error("Photo storage upload failed for user %s: %s", user_id, exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "code": "STORAGE_ERROR",
+                "message": "Photo upload failed. Please ensure the Supabase Storage bucket is configured and try again.",
+                "details": {},
+            },
+        )
     profile_url = f"{settings.PUBLIC_BASE_URL}/profile/{uid}"
 
     record = {
