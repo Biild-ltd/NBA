@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(l){if(l.search[1]==="/"){var d=l.search.slice(1).split("&").map(function(s){return s.replace(/~and~/g,"&");}).join("?");window.history.replaceState(null,null,l.pathname.slice(0,-1)+d+l.hash);}}(window.location));</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>NBA ID Card Portal | Nigerian Bar Association</title>
@@ -32,6 +33,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
 .page{display:none}
 #pg-auth.show{display:flex;min-height:100vh;flex-direction:row}
 #pg-dash.show{display:flex;min-height:100vh;flex-direction:row}
+#pg-public.show{display:flex;min-height:100vh;flex-direction:column;align-items:center;justify-content:flex-start;background:#f9fafb;padding:32px 16px}
 .nba-logo{object-fit:contain}
 /* AUTH */
 .auth-left{width:44%;background:var(--green-l);display:flex;flex-direction:column;justify-content:space-between;padding:40px;overflow:hidden}
@@ -302,13 +304,22 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
     </div>
   </nav>
 </div>
+<div id="pg-public" class="page">
+  <div style="max-width:480px;width:100%;background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.08);padding:32px 28px;text-align:center">
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px">
+      <img class="nba-logo" width="40" height="40" id="logo-pub" alt="NBA Logo" style="border-radius:6px"/>
+      <div style="text-align:left"><div style="font-weight:700;font-size:15px;color:#111827">Nigerian Bar Association</div><div style="font-size:12px;color:#9ca3af">Member Profile</div></div>
+    </div>
+    <div id="pub-body"><div style="padding:40px 0;color:#9ca3af">Loading profile…</div></div>
+  </div>
+</div>
 <script>
 const API_URL='https://api.nba.alphacards.dev/v1';
 var photoData=null,aiOk=false,pending={},currentM=null,userName='Member';
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 function showPage(id){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('show');});document.getElementById(id).classList.add('show');window.scrollTo(0,0);}
 function switchTab(t,el){document.querySelectorAll('.auth-tab').forEach(function(x){x.classList.remove('active');});el.classList.add('active');document.getElementById('tab-signup').style.display=t==='signup'?'block':'none';document.getElementById('tab-login').style.display=t==='login'?'block':'none';}
-function cloneLogos(){var src=document.getElementById('nba-logo-src');if(!src)return;var s=src.src;['logo-auth','logo-hero','logo-sb'].forEach(function(id){var el=document.getElementById(id);if(el)el.src=s;});}
+function cloneLogos(){var src=document.getElementById('nba-logo-src');if(!src)return;var s=src.src;['logo-auth','logo-hero','logo-sb','logo-pub'].forEach(function(id){var el=document.getElementById(id);if(el)el.src=s;});}
 function showAuthErr(msg,success){var el=document.getElementById('authErr');if(!el){el=document.createElement('div');el.id='authErr';el.style.cssText='margin-top:12px;padding:10px 14px;border-radius:6px;font-size:13px;font-weight:500;';var box=document.querySelector('.auth-box');if(box)box.appendChild(el);}el.textContent=msg;el.style.background=success?'#e8f5e9':'#fef2f2';el.style.color=success?'#2d7a3d':'#dc2626';el.style.display='block';}
 function isAdmin(){var token=localStorage.getItem('nba_token');if(!token)return false;try{var payload=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));return !!(payload.app_metadata&&payload.app_metadata.role==='admin');}catch(e){return false;}}
 function authHeader(){var t=localStorage.getItem('nba_token')||'';return t?{'Authorization':'Bearer '+t}:{};}
@@ -518,11 +529,37 @@ async function renderAdmin(){
     }).join('');
   }catch(e){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--g400)">Error loading members.</td></tr>';}
 }
+/* ── Public profile page ─────────────────────────────────────────────────── */
+async function showPublicProfile(uid){
+  showPage('pg-public');
+  var body=document.getElementById('pub-body');
+  try{
+    var res=await fetch(API_URL+'/profiles/'+encodeURIComponent(uid));
+    if(!res.ok){body.innerHTML='<div style="padding:40px 0;color:#ef4444">Member profile not found or not yet active.</div>';return;}
+    var p=await res.json();
+    var ph=p.photo_url?'<img src="'+p.photo_url+'" style="width:120px;height:144px;object-fit:cover;border-radius:10px;border:3px solid #3a9e4f;margin:0 auto 16px;display:block" alt="Photo"/>':"<div style='width:120px;height:144px;background:#e8f5e9;border:3px solid #e5e7eb;border-radius:10px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:48px'>&#128100;</div>";
+    var qrH=p.qr_code_url?'<img src="'+p.qr_code_url+'" style="width:140px;height:140px;border-radius:8px;border:2px solid #e5e7eb;margin:16px auto 0;display:block" alt="QR Code"/>':'';
+    body.innerHTML=ph+
+      '<div style="font-size:20px;font-weight:700;color:#111827;margin-bottom:4px">'+p.full_name+'</div>'+
+      '<div style="font-size:13px;color:#3a9e4f;font-weight:600;margin-bottom:16px">Nigerian Bar Association Member</div>'+
+      '<div style="background:#f9fafb;border-radius:10px;padding:16px;text-align:left;font-size:13px;color:#374151;line-height:2">'+
+      '<b>Member ID:</b> '+p.member_uid+'<br>'+
+      '<b>Branch:</b> '+p.branch+'<br>'+
+      '<b>Year of Call:</b> '+p.year_of_call+'<br>'+
+      '<b>Enrolment No:</b> '+p.enrollment_no+
+      '</div>'+qrH;
+  }catch(e){
+    body.innerHTML='<div style="padding:40px 0;color:#ef4444">Could not load profile. Please try again.</div>';
+  }
+}
 /* ── Bootstrap ───────────────────────────────────────────────────────────── */
 window.addEventListener('load',function(){
   cloneLogos();
   var pWrap=document.getElementById('f-phone-wrap');
   if(pWrap){var pInput2=document.getElementById('f-phone');pInput2.addEventListener('focus',function(){pWrap.style.borderColor='var(--green)';pWrap.style.boxShadow='0 0 0 3px rgba(58,158,79,.1)';});pInput2.addEventListener('blur',function(){pWrap.style.borderColor='var(--g200)';pWrap.style.boxShadow='';});}
+  var path=window.location.pathname;
+  var profileMatch=path.match(/^\/profile\/([^\/]+)$/);
+  if(profileMatch){showPublicProfile(profileMatch[1]);return;}
   var params=new URLSearchParams(window.location.search);
   var reference=params.get('reference');
   if(reference&&localStorage.getItem('nba_token')){verifyAndShowProfile(reference);}
