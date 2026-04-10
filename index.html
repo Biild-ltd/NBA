@@ -354,6 +354,29 @@ async function startApp(){
   }catch(e){showPanel('form',document.getElementById('nav-form'));}
   if(isAdmin())renderAdmin();
 }
+async function verifyAndShowProfile(reference){
+  showPage('pg-dash');
+  var adminNav=document.getElementById('nav-admin');var mobAdmin=document.getElementById('mob-admin');
+  if(adminNav)adminNav.style.display=isAdmin()?'':'none';
+  if(mobAdmin)mobAdmin.style.display=isAdmin()?'':'none';
+  try{
+    // Verify payment (checks DB — webhook may not have fired yet, that's ok)
+    await fetch(API_URL+'/payments/verify/'+reference,{headers:authHeader()});
+    // Load profile regardless of payment status
+    var res=await fetch(API_URL+'/profiles/me',{headers:authHeader()});
+    if(res.status===401){logout();return;}
+    if(res.ok){
+      var profile=await res.json();
+      userName=(profile.full_name||'Member').split(' ')[0];
+      document.getElementById('topbar-name').textContent=userName.toUpperCase();
+      document.getElementById('topbar-av').textContent=userName.charAt(0).toUpperCase();
+      renderProfilePanel(profile);
+      showPanel('profile',document.getElementById('nav-profile'));
+    }
+  }catch(e){startApp();}
+  window.history.replaceState({},'',window.location.pathname);
+  if(isAdmin())renderAdmin();
+}
 async function logout(){
   var token=localStorage.getItem('nba_token');
   if(token){try{await fetch(API_URL+'/auth/logout',{method:'POST',headers:authHeader()});}catch(e){}}
@@ -397,6 +420,7 @@ async function doPayment(){
   var btn=document.getElementById('payBtn');btn.disabled=true;
   btn.innerHTML='<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px"></span>Processing\u2026';
   try{
+    // Step 1: create profile
     var parts=pending.photo.split(',');var mime=parts[0].split(':')[1].split(';')[0];
     var byteStr=atob(parts[1]);var arr=new Uint8Array(byteStr.length);for(var i=0;i<byteStr.length;i++)arr[i]=byteStr.charCodeAt(i);
     var blob=new Blob([arr],{type:mime});
@@ -406,21 +430,21 @@ async function doPayment(){
     form.append('phone_number',pending.phone);form.append('email_address',pending.email);
     form.append('office_address',pending.address);
     form.append('photo',blob,'photo.'+(mime.split('/')[1]||'jpg'));
-    var res=await fetch(API_URL+'/profiles',{method:'POST',headers:authHeader(),body:form});
-    var data=await res.json();
-    if(res.ok){
-      currentM=data;renderProfilePanel(data);renderAdmin();
-      showPanel('profile',document.getElementById('nav-profile'));
-      ['f-name','f-enroll','f-year','f-phone','f-email','f-address'].forEach(function(fid){var el=document.getElementById(fid);if(el)el.value='';});
-      document.getElementById('f-branch').value='';
-      photoData=null;aiOk=false;pzImg.src='';pzPrev.style.display='none';pzPh.style.display='block';pInput.value='';document.getElementById('aiBox').className='ai-box';
-    }else{
-      var msg=(data.error&&data.error.message)||'Profile creation failed.';
-      if(data.error&&data.error.code==='DUPLICATE_ENROLLMENT')msg='This enrollment number is already registered.';
-      alert(msg);
+    var profileRes=await fetch(API_URL+'/profiles',{method:'POST',headers:authHeader(),body:form});
+    var profileData=await profileRes.json();
+    if(!profileRes.ok){
+      var msg=(profileData.error&&profileData.error.message)||'Profile creation failed.';
+      if(profileData.error&&profileData.error.code==='DUPLICATE_ENROLLMENT')msg='This enrollment number is already registered.';
+      alert(msg);return;
     }
+    // Step 2: initialise Paystack transaction
+    var payRes=await fetch(API_URL+'/payments/initialise',{method:'POST',headers:authHeader()});
+    var payData=await payRes.json();
+    if(!payRes.ok){alert('Could not initialise payment. Please try again.');return;}
+    // Step 3: redirect to Paystack hosted checkout
+    window.location.href=payData.authorization_url;
   }catch(err){alert('Something went wrong: '+err.message);}
-  finally{btn.disabled=false;btn.textContent='Confirm & complete \u2014 Free';}
+  finally{btn.disabled=false;btn.textContent='Confirm & Pay';}
 }
 /* ── Profile panel ───────────────────────────────────────────────────────── */
 function renderProfilePanel(p){
@@ -473,7 +497,10 @@ async function renderAdmin(){
 /* ── Bootstrap ───────────────────────────────────────────────────────────── */
 window.addEventListener('load',function(){
   cloneLogos();
-  if(localStorage.getItem('nba_token')){startApp();}
+  var params=new URLSearchParams(window.location.search);
+  var reference=params.get('reference');
+  if(reference&&localStorage.getItem('nba_token')){verifyAndShowProfile(reference);}
+  else if(localStorage.getItem('nba_token')){startApp();}
   else{showPage('pg-auth');}
 });
 </script>
