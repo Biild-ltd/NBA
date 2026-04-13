@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Request, status
 from app.dependencies import get_current_user
 from app.limiter import limiter
 from app.models.payment import (
+    PaymentBypassResponse,
     PaymentHistoryResponse,
     PaymentInitResponse,
     PaymentVerifyResponse,
@@ -63,6 +64,23 @@ async def webhook(request: Request) -> dict:
     signature = request.headers.get("x-paystack-signature", "")
     await payment_service.handle_webhook(raw_body, signature)
     return {"status": "ok"}
+
+
+@router.post("/bypass", status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute")
+async def bypass_payment(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+) -> PaymentBypassResponse:
+    """Temporarily activate membership at ₦0 — Paystack account pending verification.
+
+    Records a zero-amount transaction, marks the profile as paid/active, and
+    triggers QR code generation. The full Paystack flow remains in place and will
+    be re-enabled once the merchant account is verified. Rate limited to 5 requests
+    per minute per IP.
+    """
+    result = await payment_service.bypass_payment(current_user["sub"])
+    return PaymentBypassResponse(**result)
 
 
 @router.get("/history")

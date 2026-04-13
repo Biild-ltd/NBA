@@ -54,8 +54,17 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
 .auth-p{font-size:13px;color:var(--g500);margin-bottom:22px}
 .af{margin-bottom:15px}
 .af label{display:block;font-size:13px;font-weight:500;color:var(--g700);margin-bottom:5px}
-.af input{width:100%;padding:11px 14px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:14px;color:var(--g900);outline:none;transition:border-color .15s}
-.af input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(58,158,79,.1)}
+.af input,.af textarea{width:100%;box-sizing:border-box;padding:11px 14px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:14px;color:var(--g900);outline:none;transition:border-color .15s;background:#fff}
+.af input:focus,.af textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(58,158,79,.1)}
+.af textarea{resize:vertical;min-height:72px}
+.u-photo-wrap{display:flex;align-items:center;gap:14px;padding:12px;background:var(--g50);border:1.5px solid var(--g200);border-radius:var(--r);margin-bottom:15px}
+.u-photo-thumb{width:56px;height:68px;object-fit:cover;border-radius:6px;border:2px solid var(--green);flex-shrink:0}
+.u-photo-ph{width:56px;height:68px;background:var(--green-l);border:2px solid var(--g200);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.u-photo-info{flex:1;min-width:0}
+.u-photo-name{font-size:13px;font-weight:500;color:var(--g700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.u-photo-hint{font-size:11px;color:var(--g400);margin-bottom:8px;line-height:1.4}
+.u-photo-btn{font-size:12px;font-weight:600;color:var(--green);background:none;border:1.5px solid var(--green);border-radius:20px;padding:4px 12px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
+.u-photo-btn:hover{background:var(--green-l)}
 .pill-btn{width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--pill);font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:background .15s}
 .pill-btn:hover{background:var(--green-d)}
 .pill-btn:disabled{opacity:.5;cursor:not-allowed}
@@ -312,14 +321,25 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
       </div>
       <div class="af"><label>Full name</label><input type="text" id="u-name" placeholder="Full legal name"/></div>
       <div class="af"><label>Phone number</label>
-        <div style="display:flex;align-items:center;border:1.5px solid var(--g200);border-radius:var(--r);overflow:hidden">
+        <div style="display:flex;align-items:center;border:1.5px solid var(--g200);border-radius:var(--r);overflow:hidden;box-sizing:border-box;width:100%">
           <span style="padding:10px;font-size:14px;color:#6b7280;border-right:1.5px solid var(--g200);background:#f9fafb;white-space:nowrap">+234</span>
-          <input type="tel" id="u-phone" placeholder="8012345678" style="border:none;outline:none;flex:1;padding:10px 13px;font-size:14px;font-family:Inter,sans-serif"/>
+          <input type="tel" id="u-phone" placeholder="8012345678" style="border:none;outline:none;flex:1;padding:10px 13px;font-size:14px;font-family:Inter,sans-serif;min-width:0"/>
         </div>
       </div>
       <div class="af"><label>Email address</label><input type="email" id="u-email" placeholder="your@email.com"/></div>
-      <div class="af"><label>Office / chambers address</label><textarea id="u-address" rows="3" placeholder="Full office address" style="resize:vertical"></textarea></div>
-      <div style="margin-top:4px;margin-bottom:16px;padding:10px 14px;background:#f0f9ff;border-radius:8px;font-size:12px;color:#0369a1">To change your password, use the <b>Forgot password</b> link on the login page.</div>
+      <div class="af"><label>Office / chambers address</label><textarea id="u-address" rows="3" placeholder="Full office address"></textarea></div>
+      <div style="font-size:13px;font-weight:500;color:var(--g700);margin-bottom:6px">Passport photograph</div>
+      <input type="file" id="u-photo-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleModalPhoto(this.files[0])"/>
+      <div class="u-photo-wrap">
+        <div id="u-photo-thumb-wrap"><div class="u-photo-ph" id="u-photo-ph">&#128100;</div></div>
+        <div class="u-photo-info">
+          <div class="u-photo-name" id="u-photo-name">Current photo</div>
+          <div class="u-photo-hint">Passport-style &middot; White background &middot; Face clearly visible &middot; No sunglasses &middot; Max 5 MB</div>
+          <button class="u-photo-btn" onclick="document.getElementById('u-photo-input').click()">Change photo</button>
+        </div>
+      </div>
+      <div id="u-photo-status" style="display:none;margin-bottom:14px;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:500"></div>
+      <div style="margin-bottom:16px;padding:10px 14px;background:#f0f9ff;border-radius:8px;font-size:12px;color:#0369a1">To change your password, use the <b>Forgot password</b> link on the login page.</div>
       <button class="pill-btn" onclick="doUpdateProfile()" id="u-btn">Save changes</button>
       <div id="u-err" style="display:none;margin-top:10px;padding:10px 14px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:500"></div>
     </div>
@@ -336,7 +356,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
 </div>
 <script>
 const API_URL='https://api.nba.alphacards.dev/v1';
-var photoData=null,aiOk=false,pending={},currentM=null,userName='Member';
+var photoData=null,aiOk=false,pending={},currentM=null,userName='Member',modalPhotoFile=null;
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 function showPage(id){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('show');});document.getElementById(id).classList.add('show');window.scrollTo(0,0);}
 function switchTab(t,el){document.querySelectorAll('.auth-tab').forEach(function(x){x.classList.remove('active');});el.classList.add('active');document.getElementById('tab-signup').style.display=t==='signup'?'block':'none';document.getElementById('tab-login').style.display=t==='login'?'block':'none';}
@@ -502,14 +522,22 @@ async function doPayment(){
       }
       alert(msg);return;
     }
-    // Step 2: initialise Paystack transaction
-    var payRes=await fetch(API_URL+'/payments/initialise',{method:'POST',headers:authHeader()});
-    var payData=await payRes.json();
-    if(!payRes.ok){alert('Could not initialise payment. Please try again.');return;}
-    // Step 3: redirect to Paystack hosted checkout
-    window.location.href=payData.authorization_url;
+    // Step 2: bypass payment (free period — Paystack account pending verification)
+    var bypassRes=await fetch(API_URL+'/payments/bypass',{method:'POST',headers:authHeader()});
+    if(!bypassRes.ok){alert('Could not complete registration. Please try again.');return;}
+    // Step 3: load profile and navigate directly to profile panel
+    var res=await fetch(API_URL+'/profiles/me',{headers:authHeader()});
+    if(!res.ok){alert('Profile not found after registration. Please refresh.');return;}
+    var profile=await res.json();
+    userName=(profile.full_name||'Member').split(' ')[0];
+    document.getElementById('topbar-name').textContent=userName.toUpperCase();
+    document.getElementById('topbar-av').textContent=userName.charAt(0).toUpperCase();
+    renderProfilePanel(profile);
+    ['nav-form','nav-payment'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='none';});
+    ['mob-form','mob-payment'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='none';});
+    showPanel('profile',document.getElementById('nav-profile'));
   }catch(err){alert('Something went wrong: '+err.message);}
-  finally{btn.disabled=false;btn.textContent='Confirm & Pay';}
+  finally{btn.disabled=false;btn.innerHTML='Confirm &amp; complete &mdash; Free';}
 }
 /* ── Profile panel ───────────────────────────────────────────────────────── */
 function renderProfilePanel(p){
@@ -575,7 +603,33 @@ function showUpdateModal(){
   document.getElementById('u-email').value=p.email_address||'';
   document.getElementById('u-address').value=p.office_address||'';
   document.getElementById('u-err').style.display='none';
+  // Reset photo state
+  modalPhotoFile=null;
+  document.getElementById('u-photo-input').value='';
+  document.getElementById('u-photo-status').style.display='none';
+  var wrap=document.getElementById('u-photo-thumb-wrap');
+  if(p.photo_url){wrap.innerHTML='<img class="u-photo-thumb" src="'+p.photo_url+'" alt="Current photo"/>';}
+  else{wrap.innerHTML='<div class="u-photo-ph" id="u-photo-ph">&#128100;</div>';}
+  document.getElementById('u-photo-name').textContent=p.photo_url?'Current photo':'No photo on file';
   document.getElementById('modal-update').style.display='flex';
+}
+function handleModalPhoto(file){
+  if(!file)return;
+  var statusEl=document.getElementById('u-photo-status');
+  if(file.size>5*1024*1024){
+    statusEl.style.cssText='display:block;margin-bottom:14px;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:500;background:#fef2f2;color:#dc2626;border:1px solid #fecaca';
+    statusEl.textContent='Photo must be under 5 MB. Please choose a smaller file.';
+    modalPhotoFile=null;return;
+  }
+  modalPhotoFile=file;
+  var r=new FileReader();
+  r.onload=function(ev){
+    document.getElementById('u-photo-thumb-wrap').innerHTML='<img class="u-photo-thumb" src="'+ev.target.result+'" alt="New photo"/>';
+    document.getElementById('u-photo-name').textContent=file.name;
+    statusEl.style.cssText='display:block;margin-bottom:14px;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:500;background:#f0fdf4;color:#166534;border:1px solid #86efac';
+    statusEl.textContent='New photo selected \u2014 will be validated and saved when you click Save changes.';
+  };
+  r.readAsDataURL(file);
 }
 function closeUpdateModal(){document.getElementById('modal-update').style.display='none';}
 async function doUpdateProfile(){
@@ -595,14 +649,17 @@ async function doUpdateProfile(){
   if(phone)form.append('phone_number',phone);
   if(email)form.append('email_address',email);
   if(address)form.append('office_address',address);
+  if(modalPhotoFile)form.append('photo',modalPhotoFile,modalPhotoFile.name);
   try{
     var res=await fetch(API_URL+'/profiles/me',{method:'PUT',headers:authHeader(),body:form});
     var data=await res.json();
     if(!res.ok){
       var err=data.error||{};
-      errEl.textContent=err.message||'Update failed. Please try again.';errEl.style.display='block';
+      var msg=err.message||'Update failed. Please try again.';
+      if(err.code==='PHOTO_REJECTED'){var reasons=(err.details&&err.details.failures||[]).join(' ');msg='Photo rejected: '+(reasons||'Photo did not pass compliance checks.')+' Please upload a different photo.';}
+      errEl.textContent=msg;errEl.style.display='block';
     }else{
-      currentM=data;renderProfilePanel(data);closeUpdateModal();
+      modalPhotoFile=null;currentM=data;renderProfilePanel(data);closeUpdateModal();
     }
   }catch(e){
     errEl.textContent='Network error. Please try again.';errEl.style.display='block';

@@ -20,3 +20,9 @@ class PaymentVerifyResponse(BaseModel):
 class PaymentHistoryResponse(BaseModel):
     """Response for GET /payments/history."""
     transactions: list[PaymentVerifyResponse]
+
+
+class PaymentBypassResponse(BaseModel):
+    """Response for POST /payments/bypass (temporary — Paystack account pending verification)."""
+    reference: str
+    status: str

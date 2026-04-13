@@ -260,3 +260,53 @@ async def handle_webhook(raw_body: bytes, signature: str) -> None:
 async def get_payment_history(user_id: str) -> list[dict]:
     """Return all payment transactions for the current member, newest first."""
     return await asyncio.to_thread(_get_history, user_id)
+
+
+async def bypass_payment(user_id: str) -> dict:
+    """Temporarily bypass Paystack — mark membership as paid at ₦0 (free period).
+
+    Used while the Paystack merchant account is pending verification.
+    The full Paystack flow (initialise_payment / handle_webhook) remains intact
+    and will be re-enabled once the account is verified.
+
+    Raises:
+        HTTPException 404 — member profile not found.
+        HTTPException 409 — payment already completed.
+    """
+    profile = await asyncio.to_thread(_get_profile, user_id)
+    if not profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="PROFILE_NOT_FOUND",
+        )
+    if profile.get("payment_status") == "paid":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="PAYMENT_ALREADY_COMPLETED",
+        )
+
+    reference = f"NBA-FREE-{secrets.token_hex(8).upper()}"
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    await asyncio.to_thread(
+        _insert_transaction,
+        {
+            "member_id": user_id,
+            "reference": reference,
+            "amount": 0,
+            "currency": "NGN",
+            "status": "success",
+            "verified_at": now_iso,
+        },
+    )
+
+    await asyncio.to_thread(
+        _update_profile_payment,
+        user_id,
+        {"payment_status": "paid", "status": "active", "payment_ref": reference},
+    )
+
+    asyncio.create_task(qr_service.generate_and_store(user_id))
+
+    logger.info("Payment bypassed (free period) for member %s, ref %s", user_id, reference)
+    return {"reference": reference, "status": "success"}
