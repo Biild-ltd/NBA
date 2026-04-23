@@ -320,6 +320,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
         <button onclick="closeUpdateModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b7280;line-height:1;padding:0 4px">&times;</button>
       </div>
       <div class="af"><label>Full name</label><input type="text" id="u-name" placeholder="Full legal name"/></div>
+      <div class="af"><label>Year of call</label><input type="number" id="u-year" placeholder="e.g. 2019" min="1900"/></div>
       <div class="af"><label>Phone number</label>
         <div style="display:flex;align-items:center;border:1.5px solid var(--g200);border-radius:var(--r);overflow:hidden;box-sizing:border-box;width:100%">
           <span style="padding:10px;font-size:14px;color:#6b7280;border-right:1.5px solid var(--g200);background:#f9fafb;white-space:nowrap">+234</span>
@@ -598,6 +599,7 @@ async function renderAdmin(){
 function showUpdateModal(){
   if(!currentM)return;var p=currentM;
   document.getElementById('u-name').value=p.full_name||'';
+  document.getElementById('u-year').value=p.year_of_call||'';
   var ph=p.phone_number||'';if(ph.startsWith('0'))ph=ph.slice(1);
   document.getElementById('u-phone').value=ph;
   document.getElementById('u-email').value=p.email_address||'';
@@ -643,9 +645,15 @@ async function doUpdateProfile(){
   }
   var form=new FormData();
   var name=document.getElementById('u-name').value.trim();
+  var year=document.getElementById('u-year').value.trim();
   var email=document.getElementById('u-email').value.trim();
   var address=document.getElementById('u-address').value.trim();
+  if(year&&!/^\d{4}$/.test(year)){
+    errEl.textContent='Please enter a valid 4-digit year of call.';errEl.style.display='block';
+    btn.disabled=false;btn.textContent='Save changes';return;
+  }
   if(name)form.append('full_name',name);
+  if(year)form.append('year_of_call',year);
   if(phone)form.append('phone_number',phone);
   if(email)form.append('email_address',email);
   if(address)form.append('office_address',address);

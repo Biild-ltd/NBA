@@ -55,9 +55,19 @@ class ProfileCreate(BaseModel):
 
 class ProfileUpdate(BaseModel):
     full_name: str | None = Field(default=None, min_length=2, max_length=150)
+    year_of_call: int | None = Field(default=None, ge=1900)
     branch: str | None = None
     phone_number: str | None = None
     office_address: str | None = Field(default=None, min_length=10, max_length=500)
+
+    @field_validator("year_of_call")
+    @classmethod
+    def validate_year_of_call(cls, v: int | None) -> int | None:
+        if v is not None:
+            current_year = datetime.now().year
+            if v > current_year:
+                raise ValueError(f"Year of call cannot be in the future (max {current_year}).")
+        return v
 
     @field_validator("branch")
     @classmethod

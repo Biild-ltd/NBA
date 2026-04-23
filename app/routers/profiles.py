@@ -68,6 +68,7 @@ async def create_profile(
 @router.put("/me")
 async def update_my_profile(
     full_name: Optional[str] = Form(default=None),
+    year_of_call: Optional[int] = Form(default=None),
     branch: Optional[str] = Form(default=None),
     phone_number: Optional[str] = Form(default=None),
     office_address: Optional[str] = Form(default=None),
@@ -77,6 +78,7 @@ async def update_my_profile(
     try:
         data = ProfileUpdate(
             full_name=full_name,
+            year_of_call=year_of_call,
             branch=branch,
             phone_number=phone_number,
             office_address=office_address,
