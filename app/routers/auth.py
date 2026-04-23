@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Request, status
 
 from app.dependencies import get_current_user
 from app.models.auth import (
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     LoginResponse,
@@ -51,3 +52,21 @@ async def forgot_password(body: ForgotPasswordRequest) -> MessageResponse:
     return MessageResponse(
         message="If an account with that email exists, a reset link has been sent."
     )
+
+
+@router.post("/change-password")
+async def change_password(
+    body: ChangePasswordRequest,
+    current_user: dict = Depends(get_current_user),
+) -> MessageResponse:
+    """Change the authenticated user's password.
+
+    Requires the current password for verification before updating.
+    """
+    await auth_service.change_password(
+        user_id=current_user["sub"],
+        user_email=current_user["email"],
+        current_password=body.current_password,
+        new_password=body.new_password,
+    )
+    return MessageResponse(message="Password changed successfully.")

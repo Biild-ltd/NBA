@@ -340,9 +340,23 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
         </div>
       </div>
       <div id="u-photo-status" style="display:none;margin-bottom:14px;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:500"></div>
-      <div style="margin-bottom:16px;padding:10px 14px;background:#f0f9ff;border-radius:8px;font-size:12px;color:#0369a1">To change your password, use the <b>Forgot password</b> link on the login page.</div>
       <button class="pill-btn" onclick="doUpdateProfile()" id="u-btn">Save changes</button>
       <div id="u-err" style="display:none;margin-top:10px;padding:10px 14px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:500"></div>
+      <!-- Change password section -->
+      <div style="margin-top:24px;border-top:1.5px solid var(--g200);padding-top:18px">
+        <button onclick="togglePwSection()" style="display:flex;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;font-size:13px;font-weight:600;color:var(--g700);font-family:'Inter',sans-serif" id="pw-toggle">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+          Change password
+          <svg id="pw-chevron" viewBox="0 0 20 20" fill="currentColor" width="14" height="14" style="transition:transform .2s"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </button>
+        <div id="pw-section" style="display:none;margin-top:14px">
+          <div class="af"><label>Current password</label><input type="password" id="u-pw-current" placeholder="Your current password" autocomplete="current-password"/></div>
+          <div class="af"><label>New password</label><input type="password" id="u-pw-new" placeholder="At least 8 characters" autocomplete="new-password"/></div>
+          <div class="af"><label>Confirm new password</label><input type="password" id="u-pw-confirm" placeholder="Repeat new password" autocomplete="new-password"/></div>
+          <button class="pill-btn" onclick="doChangePassword()" id="pw-btn" style="margin-top:4px">Update password</button>
+          <div id="pw-msg" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -633,7 +647,57 @@ function handleModalPhoto(file){
   };
   r.readAsDataURL(file);
 }
-function closeUpdateModal(){document.getElementById('modal-update').style.display='none';}
+function closeUpdateModal(){
+  document.getElementById('modal-update').style.display='none';
+  // Reset password section on close
+  document.getElementById('pw-section').style.display='none';
+  document.getElementById('pw-chevron').style.transform='';
+  ['u-pw-current','u-pw-new','u-pw-confirm'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('pw-msg').style.display='none';
+}
+function togglePwSection(){
+  var s=document.getElementById('pw-section');
+  var open=s.style.display==='block';
+  s.style.display=open?'none':'block';
+  document.getElementById('pw-chevron').style.transform=open?'':'rotate(180deg)';
+}
+async function doChangePassword(){
+  var btn=document.getElementById('pw-btn');
+  var msg=document.getElementById('pw-msg');
+  var cur=document.getElementById('u-pw-current').value;
+  var nw=document.getElementById('u-pw-new').value;
+  var cf=document.getElementById('u-pw-confirm').value;
+  msg.style.display='none';
+  if(!cur||!nw||!cf){
+    msg.style.cssText='display:block;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;background:#fef2f2;color:#dc2626';
+    msg.textContent='Please fill in all three password fields.';return;
+  }
+  if(nw.length<8){
+    msg.style.cssText='display:block;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;background:#fef2f2;color:#dc2626';
+    msg.textContent='New password must be at least 8 characters.';return;
+  }
+  if(nw!==cf){
+    msg.style.cssText='display:block;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;background:#fef2f2;color:#dc2626';
+    msg.textContent='New passwords do not match.';return;
+  }
+  btn.disabled=true;btn.textContent='Updating…';
+  try{
+    var res=await fetch(API_URL+'/auth/change-password',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeader()),body:JSON.stringify({current_password:cur,new_password:nw})});
+    var data=await res.json();
+    if(!res.ok){
+      var errMsg=(data.error&&data.error.message)||data.detail||'Failed to change password.';
+      msg.style.cssText='display:block;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;background:#fef2f2;color:#dc2626';
+      msg.textContent=errMsg;
+    }else{
+      msg.style.cssText='display:block;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;background:#f0fdf4;color:#166534';
+      msg.textContent='Password updated successfully.';
+      ['u-pw-current','u-pw-new','u-pw-confirm'].forEach(function(id){document.getElementById(id).value='';});
+    }
+  }catch(e){
+    msg.style.cssText='display:block;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;background:#fef2f2;color:#dc2626';
+    msg.textContent='Network error. Please try again.';
+  }finally{btn.disabled=false;btn.textContent='Update password';}
+}
 async function doUpdateProfile(){
   var btn=document.getElementById('u-btn');var errEl=document.getElementById('u-err');
   errEl.style.display='none';btn.disabled=true;btn.textContent='Saving…';
