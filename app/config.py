@@ -40,11 +40,6 @@ class Settings(BaseSettings):
     FRONTEND_ORIGIN: str = ""
     ENVIRONMENT: str = "development"
 
-    # ── Supabase — kept for profile/payment/admin services during Phase 3 ────
-    # Remove these once all services are migrated to Cloud SQL (postgres.py).
-    SUPABASE_URL: str = ""
-    SUPABASE_SERVICE_KEY: str = ""
-    SUPABASE_ANON_KEY: str = ""
 
 
 settings = Settings()

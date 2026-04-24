@@ -43,6 +43,18 @@ steps:
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/nba/backend:$SHORT_SHA
       - --region=${_REGION}
       - --platform=managed
+      - --cpu=2
+      - --memory=1Gi
+      - --concurrency=80
+      - --timeout=60
+      - --max-instances=50
+      - --add-cloudsql-instances=$PROJECT_ID:${_REGION}:${_CLOUD_SQL_INSTANCE_NAME}
+      - --vpc-connector=${_VPC_CONNECTOR}
+      - --vpc-egress=private-ranges-only
+      # ── Non-sensitive env vars ────────────────────────────────────────────
+      - --set-env-vars=ENVIRONMENT=production,CLOUD_SQL_INSTANCE=$PROJECT_ID:${_REGION}:${_CLOUD_SQL_INSTANCE_NAME},DB_NAME=${_DB_NAME},DB_USER=${_DB_USER},GCS_BUCKET=${_GCS_BUCKET},PUBLIC_BASE_URL=${_PUBLIC_BASE_URL},FRONTEND_ORIGIN=${_FRONTEND_ORIGIN},SMTP_HOST=${_SMTP_HOST},SMTP_PORT=${_SMTP_PORT},SMTP_FROM=${_SMTP_FROM}
+      # ── Secrets from Secret Manager ──────────────────────────────────────
+      - --set-secrets=DB_PASSWORD=DB_PASSWORD:latest,JWT_SECRET=JWT_SECRET:latest,PAYSTACK_SECRET_KEY=PAYSTACK_SECRET_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,SUPABASE_URL=SUPABASE_URL:latest,SUPABASE_SERVICE_KEY=SUPABASE_SERVICE_KEY:latest,SUPABASE_ANON_KEY=SUPABASE_ANON_KEY:latest
       - --quiet
 
   # 5. Smoke test — confirm /v1/healthz returns 200
@@ -60,7 +72,17 @@ steps:
 
 substitutions:
   _REGION: europe-west1
-  _CLOUD_RUN_HASH: ""   # Set this in Cloud Build trigger to your Cloud Run URL hash
+  _CLOUD_RUN_HASH: ""              # Set in Cloud Build trigger (your Cloud Run URL hash)
+  _CLOUD_SQL_INSTANCE_NAME: ""    # e.g. nba-postgres
+  _VPC_CONNECTOR: ""               # e.g. nba-vpc-connector
+  _DB_NAME: postgres
+  _DB_USER: postgres
+  _GCS_BUCKET: nba-member-assets
+  _PUBLIC_BASE_URL: ""             # e.g. https://api.nba.alphacards.dev
+  _FRONTEND_ORIGIN: ""             # e.g. https://nba.alphacards.dev
+  _SMTP_HOST: ""
+  _SMTP_PORT: "587"
+  _SMTP_FROM: noreply@nba.alphacards.dev
 
 options:
   logging: CLOUD_LOGGING_ONLY

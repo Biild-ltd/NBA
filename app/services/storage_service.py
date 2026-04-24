@@ -1,61 +1,54 @@
-"""Supabase Storage service.
+"""Google Cloud Storage service.
 
-Handles upload and signed-URL generation for passport photos and QR codes.
-All Supabase SDK calls are synchronous and wrapped with asyncio.to_thread().
+Handles upload and public URL generation for passport photos and QR codes.
+All GCS SDK calls are synchronous and wrapped with asyncio.to_thread().
+
+Bucket access: objects are stored with public read access.
+Ensure your GCS bucket has allUsers granted the Storage Object Viewer role,
+or enable uniform bucket-level access with a public IAM policy.
 """
 import asyncio
 import logging
 import uuid
 
-from app.db.supabase import get_service_client
+from google.cloud import storage as gcs
+
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-BUCKET = "member-assets"
-
-# ~7 years — effectively permanent for the lifetime of a membership card
-_SIGNED_URL_EXPIRY_SECONDS = 220_752_000
+_client: gcs.Client | None = None
 
 
-# ── Sync helpers ──────────────────────────────────────────────────────────────
-
-def _upload(path: str, data: bytes, content_type: str) -> None:
-    get_service_client().storage.from_(BUCKET).upload(
-        path=path,
-        file=data,
-        file_options={"content-type": content_type, "upsert": "true"},
-    )
+def _get_client() -> gcs.Client:
+    global _client
+    if _client is None:
+        _client = gcs.Client()
+    return _client
 
 
-def _signed_url(path: str) -> str:
-    result = get_service_client().storage.from_(BUCKET).create_signed_url(
-        path=path,
-        expires_in=_SIGNED_URL_EXPIRY_SECONDS,
-    )
-    # supabase-py v2 returns a dict with key "signedURL"
-    if isinstance(result, dict):
-        return result.get("signedURL") or result.get("signed_url", "")
-    return str(result)
+def _upload_sync(path: str, data: bytes, content_type: str) -> str:
+    """Upload bytes to GCS and return the public URL."""
+    bucket = _get_client().bucket(settings.GCS_BUCKET)
+    blob = bucket.blob(path)
+    blob.upload_from_string(data, content_type=content_type)
+    return f"https://storage.googleapis.com/{settings.GCS_BUCKET}/{path}"
 
-
-# ── Async public API ──────────────────────────────────────────────────────────
 
 async def upload_photo(member_id: str, data: bytes, content_type: str) -> str:
-    """Upload a passport photo and return a long-lived signed URL.
+    """Upload a passport photo and return its public URL.
 
     Storage path: photos/{member_id}/{uuid}.(jpg|png)
     """
     extension = "jpg" if "jpeg" in content_type else "png"
     path = f"photos/{member_id}/{uuid.uuid4()}.{extension}"
-    await asyncio.to_thread(_upload, path, data, content_type)
-    return await asyncio.to_thread(_signed_url, path)
+    return await asyncio.to_thread(_upload_sync, path, data, content_type)
 
 
 async def upload_qr(member_id: str, data: bytes) -> str:
-    """Upload (or overwrite) a member's QR code PNG and return a signed URL.
+    """Upload (or overwrite) a member's QR code PNG and return its public URL.
 
     Storage path: qrcodes/{member_id}/qr.png
     """
     path = f"qrcodes/{member_id}/qr.png"
-    await asyncio.to_thread(_upload, path, data, "image/png")
-    return await asyncio.to_thread(_signed_url, path)
+    return await asyncio.to_thread(_upload_sync, path, data, "image/png")

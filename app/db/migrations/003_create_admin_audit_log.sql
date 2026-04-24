@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS public.admin_audit_log (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  admin_id     uuid NOT NULL REFERENCES auth.users(id),
+  admin_id     uuid NOT NULL REFERENCES public.users(id),
   action       text NOT NULL,           -- e.g. 'status_change', 'qr_regenerated'
   target_id    uuid NOT NULL,           -- member_profiles.id being acted on
   old_value    jsonb,

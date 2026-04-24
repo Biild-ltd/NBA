@@ -3,7 +3,7 @@
 Stage 1: File-level checks (MIME from content, size, dimensions, aspect ratio).
 Stage 2: Claude Vision API visual compliance checks (7 rules).
          Results are cached by MD5 hash with a 24-hour TTL in the
-         photo_validation_cache Supabase table.
+         photo_validation_cache table (asyncpg).
          Falls back to Stage-1-only pass if Claude Vision is unavailable.
 """
 import asyncio
@@ -21,7 +21,7 @@ from fastapi import HTTPException, status
 from PIL import Image
 
 from app.config import settings
-from app.db.supabase import get_service_client
+from app.db.postgres import get_pool
 from app.models.photo import PhotoValidationResult
 
 logger = logging.getLogger(__name__)
@@ -115,28 +115,32 @@ def _compute_md5(data: bytes) -> str:
     return hashlib.md5(data).hexdigest()
 
 
-def _get_cached_result_sync(image_hash: str) -> Optional[dict]:
+async def _get_cached_result(image_hash: str) -> Optional[dict]:
     """Query photo_validation_cache. Returns result_json dict or None on miss/expiry."""
-    cutoff = (
-        datetime.now(timezone.utc) - timedelta(hours=_CACHE_TTL_HOURS)
-    ).isoformat()
-    resp = (
-        get_service_client()
-        .table("photo_validation_cache")
-        .select("result_json")
-        .eq("image_hash", image_hash)
-        .gt("created_at", cutoff)
-        .maybe_single()
-        .execute()
-    )
-    return resp.data["result_json"] if resp.data else None
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=_CACHE_TTL_HOURS)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """SELECT result_json FROM public.photo_validation_cache
+               WHERE image_hash = $1 AND created_at > $2""",
+            image_hash,
+            cutoff,
+        )
+    return dict(row["result_json"]) if row else None
 
 
-def _save_cached_result_sync(image_hash: str, result: PhotoValidationResult) -> None:
+async def _save_cached_result(image_hash: str, result: PhotoValidationResult) -> None:
     """Upsert validation result into photo_validation_cache."""
-    get_service_client().table("photo_validation_cache").upsert(
-        {"image_hash": image_hash, "result_json": result.model_dump()}
-    ).execute()
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """INSERT INTO public.photo_validation_cache (image_hash, result_json)
+               VALUES ($1, $2::jsonb)
+               ON CONFLICT (image_hash) DO UPDATE
+                 SET result_json = EXCLUDED.result_json, created_at = now()""",
+            image_hash,
+            json.dumps(result.model_dump()),
+        )
 
 
 def _call_claude_vision(data: bytes, mime_type: str) -> PhotoValidationResult:
@@ -189,7 +193,7 @@ async def validate_photo_stage2(data: bytes, mime_type: str) -> PhotoValidationR
 
     # 1. Check cache
     try:
-        cached_raw = await asyncio.to_thread(_get_cached_result_sync, image_hash)
+        cached_raw = await _get_cached_result(image_hash)
     except Exception as exc:
         logger.warning("Cache query failed, proceeding without cache: %s", exc)
         cached_raw = None
@@ -208,7 +212,7 @@ async def validate_photo_stage2(data: bytes, mime_type: str) -> PhotoValidationR
 
     # 3. Cache result (non-critical; log and continue on failure)
     try:
-        await asyncio.to_thread(_save_cached_result_sync, image_hash, result)
+        await _save_cached_result(image_hash, result)
     except Exception as exc:
         logger.warning("Failed to cache photo validation result: %s", exc)
 

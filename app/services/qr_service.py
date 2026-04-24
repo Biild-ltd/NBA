@@ -2,8 +2,10 @@
 
 Flow:
   generate_and_store → called via asyncio.create_task after successful payment webhook;
-                       generates QR PNG, uploads to Supabase Storage, updates qr_code_url on profile.
+                       generates QR PNG, uploads to GCS, updates qr_code_url on profile.
   get_qr_bytes       → called by QR endpoints; generates PNG on-demand from stored profile_url.
+
+All DB operations use asyncpg directly.
 """
 import asyncio
 import io
@@ -15,7 +17,7 @@ from PIL import Image
 import qrcode
 from qrcode.constants import ERROR_CORRECT_M
 
-from app.db.supabase import get_service_client
+from app.db.postgres import get_pool
 from app.services import storage_service
 
 logger = logging.getLogger(__name__)
@@ -40,53 +42,36 @@ def _generate_qr_png(profile_url: str) -> bytes:
     return buf.getvalue()
 
 
-def _get_profile_by_id(member_id: str) -> dict | None:
-    result = (
-        get_service_client()
-        .table("member_profiles")
-        .select("id, profile_url")
-        .eq("id", member_id)
-        .maybe_single()
-        .execute()
-    )
-    return result.data
-
-
-def _get_profile_by_uid(member_uid: str) -> dict | None:
-    result = (
-        get_service_client()
-        .table("member_profiles")
-        .select("id, profile_url")
-        .eq("member_uid", member_uid)
-        .maybe_single()
-        .execute()
-    )
-    return result.data
-
-
-def _update_qr_url(member_id: str, qr_code_url: str) -> None:
-    get_service_client().table("member_profiles").update(
-        {"qr_code_url": qr_code_url}
-    ).eq("id", member_id).execute()
-
-
 # ── Async public API ───────────────────────────────────────────────────────────
 
 async def generate_and_store(member_id: str) -> str | None:
-    """Generate a QR code PNG, upload to Supabase Storage, and update the profile.
+    """Generate a QR code PNG, upload to GCS, and update the profile.
 
     Non-fatal: all exceptions are caught and logged; returns None on failure.
     Designed to be called via asyncio.create_task() from the payment webhook handler.
     """
     try:
-        profile = await asyncio.to_thread(_get_profile_by_id, member_id)
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            profile = await conn.fetchrow(
+                "SELECT id, profile_url FROM public.member_profiles WHERE id = $1",
+                member_id,
+            )
+
         if not profile:
             logger.warning("QR generation: profile not found for member_id=%s", member_id)
             return None
 
         png_bytes = await asyncio.to_thread(_generate_qr_png, profile["profile_url"])
         url = await storage_service.upload_qr(member_id, png_bytes)
-        await asyncio.to_thread(_update_qr_url, member_id, url)
+
+        async with pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE public.member_profiles SET qr_code_url = $1 WHERE id = $2",
+                url,
+                member_id,
+            )
+
         logger.info("QR code generated and stored for member_id=%s", member_id)
         return url
     except Exception as exc:
@@ -100,7 +85,13 @@ async def get_qr_bytes(member_uid: str) -> bytes:
     Raises:
         HTTPException 404 — member_uid not found.
     """
-    profile = await asyncio.to_thread(_get_profile_by_uid, member_uid)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        profile = await conn.fetchrow(
+            "SELECT id, profile_url FROM public.member_profiles WHERE member_uid = $1",
+            member_uid,
+        )
+
     if not profile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
