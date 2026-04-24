@@ -17,9 +17,9 @@ steps:
     args:
       - build
       - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/nba/backend:$SHORT_SHA
+      - europe-west1-docker.pkg.dev/$PROJECT_ID/nba/backend:$SHORT_SHA
       - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/nba/backend:latest
+      - europe-west1-docker.pkg.dev/$PROJECT_ID/nba/backend:latest
       - .
 
   # 3. Push image to Artifact Registry
@@ -29,10 +29,10 @@ steps:
     args:
       - push
       - --all-tags
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/nba/backend
+      - europe-west1-docker.pkg.dev/$PROJECT_ID/nba/backend
 
   # 4. Deploy to Cloud Run
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     id: deploy
     waitFor: [push]
     args:
@@ -40,20 +40,16 @@ steps:
       - run
       - deploy
       - nba-prod-eu
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/nba/backend:$SHORT_SHA
-      - --region=${_REGION}
+      - --image=europe-west1-docker.pkg.dev/$PROJECT_ID/nba/backend:$SHORT_SHA
+      - --region=europe-west1
       - --platform=managed
       - --cpu=2
       - --memory=1Gi
       - --concurrency=80
       - --timeout=60
       - --max-instances=50
-      - --add-cloudsql-instances=$PROJECT_ID:${_REGION}:${_CLOUD_SQL_INSTANCE_NAME}
-      - --vpc-connector=${_VPC_CONNECTOR}
-      - --vpc-egress=private-ranges-only
-      # ── Non-sensitive env vars ────────────────────────────────────────────
-      - --set-env-vars=ENVIRONMENT=production,CLOUD_SQL_INSTANCE=$PROJECT_ID:${_REGION}:${_CLOUD_SQL_INSTANCE_NAME},DB_NAME=${_DB_NAME},DB_USER=${_DB_USER},GCS_BUCKET=${_GCS_BUCKET},PUBLIC_BASE_URL=${_PUBLIC_BASE_URL},FRONTEND_ORIGIN=${_FRONTEND_ORIGIN},SMTP_HOST=${_SMTP_HOST},SMTP_PORT=${_SMTP_PORT},SMTP_FROM=${_SMTP_FROM}
-      # ── Secrets from Secret Manager ──────────────────────────────────────
+      - --add-cloudsql-instances=$PROJECT_ID:europe-west1:${_CLOUD_SQL_INSTANCE_NAME}
+      - --set-env-vars=ENVIRONMENT=production,DB_NAME=postgres,DB_USER=postgres,GCS_BUCKET=nba-member-assets,PUBLIC_BASE_URL=https://api.nba.alphacards.dev,FRONTEND_ORIGIN=https://nba.alphacards.dev,SMTP_HOST=,SMTP_PORT=587,SMTP_FROM=noreply@nba.alphacards.dev,CLOUD_SQL_INSTANCE=$PROJECT_ID:europe-west1:${_CLOUD_SQL_INSTANCE_NAME}
       - --set-secrets=DB_PASSWORD=DB_PASSWORD:latest,JWT_SECRET=JWT_SECRET:latest,PAYSTACK_SECRET_KEY=PAYSTACK_SECRET_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest
       - --quiet
 
@@ -68,21 +64,11 @@ steps:
       - --show-error
       - --max-time
       - "15"
-      - https://nba-prod-eu-${_CLOUD_RUN_HASH}.${_REGION}.run.app/v1/healthz
+      - https://nba-prod-eu-${_CLOUD_RUN_HASH}.europe-west1.run.app/v1/healthz
 
 substitutions:
-  _REGION: europe-west1
-  _CLOUD_RUN_HASH: ""              # Set in Cloud Build trigger (your Cloud Run URL hash)
-  _CLOUD_SQL_INSTANCE_NAME: ""    # e.g. nba-postgres
-  _VPC_CONNECTOR: ""               # e.g. nba-vpc-connector
-  _DB_NAME: postgres
-  _DB_USER: postgres
-  _GCS_BUCKET: nba-member-assets
-  _PUBLIC_BASE_URL: ""             # e.g. https://api.nba.alphacards.dev
-  _FRONTEND_ORIGIN: ""             # e.g. https://nba.alphacards.dev
-  _SMTP_HOST: ""
-  _SMTP_PORT: "587"
-  _SMTP_FROM: noreply@nba.alphacards.dev
+  _CLOUD_SQL_INSTANCE_NAME: ""    # Set in Cloud Build trigger — your Cloud SQL instance name (e.g. nba-postgres)
+  _CLOUD_RUN_HASH: ""             # Set in Cloud Build trigger — hash from your Cloud Run URL
 
 options:
   logging: CLOUD_LOGGING_ONLY
