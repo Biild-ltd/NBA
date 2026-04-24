@@ -35,8 +35,8 @@ steps:
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     id: deploy
     waitFor: [push]
+    entrypoint: gcloud
     args:
-      - gcloud
       - run
       - deploy
       - nba-prod-eu
