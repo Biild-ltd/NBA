@@ -1,6 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
+from app.dependencies import get_current_user
 from app.services import qr_service
 
 router = APIRouter(prefix="/qr", tags=["QR Codes"])
@@ -18,7 +19,10 @@ async def get_qr(member_uid: str) -> Response:
 
 
 @router.get("/{member_uid}/download", response_class=Response)
-async def download_qr(member_uid: str) -> Response:
+async def download_qr(
+    member_uid: str,
+    _: dict = Depends(get_current_user),
+) -> Response:
     """Return the QR code PNG as a downloadable file attachment.
 
     No authentication required — QR codes are public assets (they only encode

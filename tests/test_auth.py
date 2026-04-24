@@ -114,7 +114,11 @@ class TestLogout:
             "app.routers.auth.auth_service.logout", new_callable=AsyncMock
         ) as mock_out:
             mock_out.return_value = None
-            resp = client.post("/v1/auth/logout", headers=auth_headers)
+            resp = client.post(
+                "/v1/auth/logout",
+                json={"refresh_token": "fake-refresh-token"},
+                headers=auth_headers,
+            )
         assert resp.status_code == 204
 
     def test_no_token_returns_401(self, client):
