@@ -5,7 +5,7 @@ pydantic-settings>=2.5.2
 
 # Database — Cloud SQL PostgreSQL
 asyncpg==0.29.0
-google-cloud-sql-connector[asyncpg]==1.9.0
+cloud-sql-python-connector[asyncpg]==1.9.0
 
 # Auth
 passlib[bcrypt]==1.7.4
