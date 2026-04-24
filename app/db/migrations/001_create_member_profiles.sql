@@ -2,7 +2,7 @@
 -- Run against your Supabase project via the SQL editor or CLI.
 
 CREATE TABLE IF NOT EXISTS public.member_profiles (
-  id               uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id               uuid PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
   full_name        text NOT NULL,
   enrollment_no    text NOT NULL UNIQUE,
   year_of_call     smallint NOT NULL CHECK (year_of_call >= 1900 AND year_of_call <= 2100),

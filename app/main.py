@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
+from app.db.postgres import close_pool, open_pool
 from app.limiter import limiter
 from app.routers import admin, auth, payments, photos, profiles, qr, utility
 
@@ -24,7 +25,9 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting NBA Backend API | environment=%s", settings.ENVIRONMENT)
+    await open_pool()
     yield
+    await close_pool()
     logger.info("Shutting down NBA Backend API")
 
 

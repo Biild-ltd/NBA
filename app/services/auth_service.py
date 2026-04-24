@@ -1,149 +1,299 @@
-"""Authentication service — thin wrapper around Supabase Auth.
+"""Authentication service — custom JWT auth backed by Cloud SQL PostgreSQL.
 
-All Supabase SDK calls are synchronous; they are wrapped with
-asyncio.to_thread() so route handlers can stay async.
+Passwords are hashed with bcrypt (cost 12).
+Access tokens are HS256 JWTs (15-minute expiry).
+Refresh tokens are opaque 32-byte hex strings; only their SHA-256 hash is
+stored in the database so a DB leak does not expose live tokens.
 """
 import asyncio
+import hashlib
 import logging
+import secrets
+from datetime import datetime, timedelta, timezone
 
-import httpx
 from fastapi import HTTPException, status
+from jose import jwt
+from passlib.context import CryptContext
 
 from app.config import settings
-from app.db.supabase import get_anon_client
+from app.db.postgres import get_pool
+from app.services import email_service
 
 logger = logging.getLogger(__name__)
 
-
-# ── Sync helpers (run inside thread pool) ────────────────────────────────────
-
-def _sign_up(email: str, password: str):
-    return get_anon_client().auth.sign_up({"email": email, "password": password})
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
 
 
-def _sign_in(email: str, password: str):
-    return get_anon_client().auth.sign_in_with_password(
-        {"email": email, "password": password}
-    )
+# ── Internal helpers ──────────────────────────────────────────────────────────
+
+def _hash_password(plain: str) -> str:
+    return pwd_context.hash(plain)
 
 
-def _refresh(refresh_token: str):
-    return get_anon_client().auth.refresh_session(refresh_token)
+def _verify_password(plain: str, hashed: str) -> bool:
+    return pwd_context.verify(plain, hashed)
 
 
-def _reset_password(email: str) -> None:
-    get_anon_client().auth.reset_password_for_email(email)
+def _hash_token(raw: str) -> str:
+    """SHA-256 hex digest — used for refresh and reset tokens."""
+    return hashlib.sha256(raw.encode()).hexdigest()
 
 
-def _update_user_password(user_id: str, new_password: str) -> None:
-    from app.db.supabase import get_service_client
-    get_service_client().auth.admin.update_user_by_id(user_id, {"password": new_password})
+def _create_access_token(user_id: str, email: str, role: str) -> str:
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "role": role,
+        "iat": now,
+        "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    }
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
+
+
+def _make_refresh_token() -> tuple[str, str]:
+    """Return (raw_token, sha256_hash). Store only the hash."""
+    raw = secrets.token_hex(32)
+    return raw, _hash_token(raw)
 
 
 # ── Async public API ──────────────────────────────────────────────────────────
 
 async def register(email: str, password: str) -> dict:
-    try:
-        result = await asyncio.to_thread(_sign_up, email, password)
-    except Exception as exc:
-        msg = str(exc).lower()
-        if "already registered" in msg or "user already" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="An account with this email already exists.",
-            )
-        logger.warning("Supabase sign_up error: %s", exc)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    email = email.lower().strip()
+    pool = await get_pool()
 
+    existing = await pool.fetchrow(
+        "SELECT id FROM users WHERE email = $1", email
+    )
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with this email already exists.",
+        )
+
+    # bcrypt is CPU-bound (~100 ms) — run in thread to avoid blocking the loop
+    password_hash = await asyncio.to_thread(_hash_password, password)
+
+    row = await pool.fetchrow(
+        "INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email",
+        email, password_hash,
+    )
     return {
-        "user_id": str(result.user.id),
-        "email": result.user.email,
-        "message": (
-            "Registration successful. "
-            "Please check your email to confirm your account."
-        ),
+        "user_id": str(row["id"]),
+        "email": row["email"],
+        "message": "Registration successful. You can now log in.",
     }
 
 
 async def login(email: str, password: str) -> dict:
-    try:
-        result = await asyncio.to_thread(_sign_in, email, password)
-    except Exception:
+    email = email.lower().strip()
+    pool = await get_pool()
+
+    row = await pool.fetchrow(
+        "SELECT id, password_hash, role FROM users WHERE email = $1", email
+    )
+    # Use the same error for "not found" and "wrong password" to prevent
+    # email enumeration
+    if not row:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="INVALID_TOKEN",
+            detail="Invalid email or password.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    session = result.session
+    valid = await asyncio.to_thread(_verify_password, password, row["password_hash"])
+    if not valid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user_id = str(row["id"])
+    access_token = _create_access_token(user_id, email, row["role"])
+
+    raw_refresh, hashed_refresh = _make_refresh_token()
+    expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    await pool.execute(
+        "INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)",
+        row["id"], hashed_refresh, expires_at,
+    )
+
     return {
-        "access_token": session.access_token,
-        "refresh_token": session.refresh_token,
+        "access_token": access_token,
+        "refresh_token": raw_refresh,
         "token_type": "bearer",
-        "user_id": str(result.user.id),
+        "user_id": user_id,
     }
-
-
-async def logout(access_token: str) -> None:
-    """Invalidate the session on Supabase's side via the Auth REST API."""
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as http:
-            await http.post(
-                f"{settings.SUPABASE_URL}/auth/v1/logout",
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "apikey": settings.SUPABASE_ANON_KEY,
-                },
-            )
-    except Exception as exc:
-        logger.warning("Supabase logout call failed (ignoring): %s", exc)
 
 
 async def refresh(refresh_token: str) -> dict:
-    try:
-        result = await asyncio.to_thread(_refresh, refresh_token)
-    except Exception:
+    hashed = _hash_token(refresh_token)
+    pool = await get_pool()
+
+    row = await pool.fetchrow(
+        """
+        SELECT rt.id, rt.expires_at, u.id AS user_id, u.email, u.role
+          FROM refresh_tokens rt
+          JOIN users u ON u.id = rt.user_id
+         WHERE rt.token_hash = $1
+        """,
+        hashed,
+    )
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="INVALID_TOKEN",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if row["expires_at"] < datetime.now(timezone.utc):
+        # Clean up the expired row
+        await pool.execute("DELETE FROM refresh_tokens WHERE id = $1", row["id"])
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="INVALID_TOKEN",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    session = result.session
+    # Token rotation: delete the used token before issuing a new one
+    await pool.execute("DELETE FROM refresh_tokens WHERE id = $1", row["id"])
+
+    user_id = str(row["user_id"])
+    access_token = _create_access_token(user_id, row["email"], row["role"])
+
+    raw_refresh, hashed_refresh = _make_refresh_token()
+    new_expires = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    await pool.execute(
+        "INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)",
+        row["user_id"], hashed_refresh, new_expires,
+    )
+
     return {
-        "access_token": session.access_token,
-        "refresh_token": session.refresh_token,
+        "access_token": access_token,
+        "refresh_token": raw_refresh,
         "token_type": "bearer",
     }
 
 
-async def change_password(user_id: str, user_email: str, current_password: str, new_password: str) -> None:
+async def logout(refresh_token: str) -> None:
+    """Delete the refresh token from the DB. Silently succeeds if not found."""
+    hashed = _hash_token(refresh_token)
+    pool = await get_pool()
+    await pool.execute(
+        "DELETE FROM refresh_tokens WHERE token_hash = $1", hashed
+    )
+
+
+async def forgot_password(email: str) -> None:
+    """Generate a one-hour reset token and email it. Always returns silently
+    regardless of whether the email exists (prevents enumeration)."""
+    email = email.lower().strip()
+    pool = await get_pool()
+
+    row = await pool.fetchrow("SELECT id FROM users WHERE email = $1", email)
+    if not row:
+        return  # don't reveal that the account doesn't exist
+
+    raw, hashed = secrets.token_urlsafe(32), None
+    hashed = _hash_token(raw)
+
+    # Clear any previous unused reset tokens for this user
+    await pool.execute(
+        "DELETE FROM password_reset_tokens WHERE user_id = $1", row["id"]
+    )
+
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    await pool.execute(
+        "INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)",
+        row["id"], hashed, expires_at,
+    )
+
+    reset_link = f"{settings.PUBLIC_BASE_URL}/reset-password?token={raw}"
+    await email_service.send_password_reset(email, reset_link)
+
+
+async def reset_password(token: str, new_password: str) -> None:
+    """Consume a password-reset token and update the password.
+
+    Deletes all refresh tokens for the user afterward (forces re-login
+    on all devices).
+    """
+    hashed = _hash_token(token)
+    pool = await get_pool()
+
+    row = await pool.fetchrow(
+        """
+        SELECT id, user_id, expires_at, used_at
+          FROM password_reset_tokens
+         WHERE token_hash = $1
+        """,
+        hashed,
+    )
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset link is invalid or has already been used.",
+        )
+    if row["used_at"] is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset link is invalid or has already been used.",
+        )
+    if row["expires_at"] < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset link is invalid or has already been used.",
+        )
+
+    new_hash = await asyncio.to_thread(_hash_password, new_password)
+
+    # Update password, mark token as used, invalidate all sessions atomically
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute(
+                "UPDATE users SET password_hash = $1 WHERE id = $2",
+                new_hash, row["user_id"],
+            )
+            await conn.execute(
+                "UPDATE password_reset_tokens SET used_at = $1 WHERE id = $2",
+                datetime.now(timezone.utc), row["id"],
+            )
+            await conn.execute(
+                "DELETE FROM refresh_tokens WHERE user_id = $1", row["user_id"]
+            )
+
+
+async def change_password(user_id: str, current_password: str, new_password: str) -> None:
     """Verify the current password then update to the new one.
 
-    Re-authenticates with the user's email + current_password before touching
-    anything — so an attacker with only the JWT cannot change the password.
+    Invalidates all existing refresh tokens so other devices are logged out.
+    An attacker with only a JWT cannot change the password — the current
+    password is always required.
     """
-    try:
-        await asyncio.to_thread(_sign_in, user_email, current_password)
-    except Exception:
+    pool = await get_pool()
+
+    row = await pool.fetchrow(
+        "SELECT password_hash FROM users WHERE id = $1", user_id
+    )
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PROFILE_NOT_FOUND")
+
+    valid = await asyncio.to_thread(_verify_password, current_password, row["password_hash"])
+    if not valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Current password is incorrect.",
         )
-    try:
-        await asyncio.to_thread(_update_user_password, user_id, new_password)
-    except Exception as exc:
-        logger.warning("Supabase update_user_by_id error: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update password. Please try again.",
-        )
 
+    new_hash = await asyncio.to_thread(_hash_password, new_password)
 
-async def forgot_password(email: str) -> None:
-    """Trigger a Supabase password-reset email. Always returns success to
-    prevent email enumeration — errors are swallowed and logged only."""
-    try:
-        await asyncio.to_thread(_reset_password, email)
-    except Exception as exc:
-        logger.warning("Supabase reset_password error (suppressed): %s", exc)
+    async with (await get_pool()).acquire() as conn:
+        async with conn.transaction():
+            await conn.execute(
+                "UPDATE users SET password_hash = $1 WHERE id = $2",
+                new_hash, user_id,
+            )
+            await conn.execute(
+                "DELETE FROM refresh_tokens WHERE user_id = $1", user_id
+            )
