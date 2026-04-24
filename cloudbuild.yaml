@@ -54,7 +54,7 @@ steps:
       # ── Non-sensitive env vars ────────────────────────────────────────────
       - --set-env-vars=ENVIRONMENT=production,CLOUD_SQL_INSTANCE=$PROJECT_ID:${_REGION}:${_CLOUD_SQL_INSTANCE_NAME},DB_NAME=${_DB_NAME},DB_USER=${_DB_USER},GCS_BUCKET=${_GCS_BUCKET},PUBLIC_BASE_URL=${_PUBLIC_BASE_URL},FRONTEND_ORIGIN=${_FRONTEND_ORIGIN},SMTP_HOST=${_SMTP_HOST},SMTP_PORT=${_SMTP_PORT},SMTP_FROM=${_SMTP_FROM}
       # ── Secrets from Secret Manager ──────────────────────────────────────
-      - --set-secrets=DB_PASSWORD=DB_PASSWORD:latest,JWT_SECRET=JWT_SECRET:latest,PAYSTACK_SECRET_KEY=PAYSTACK_SECRET_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,SUPABASE_URL=SUPABASE_URL:latest,SUPABASE_SERVICE_KEY=SUPABASE_SERVICE_KEY:latest,SUPABASE_ANON_KEY=SUPABASE_ANON_KEY:latest
+      - --set-secrets=DB_PASSWORD=DB_PASSWORD:latest,JWT_SECRET=JWT_SECRET:latest,PAYSTACK_SECRET_KEY=PAYSTACK_SECRET_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest
       - --quiet
 
   # 5. Smoke test — confirm /v1/healthz returns 200
