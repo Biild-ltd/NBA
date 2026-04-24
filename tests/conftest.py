@@ -8,10 +8,11 @@ import os
 import time
 
 # Inject test credentials before any app import touches pydantic-settings.
-os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
-os.environ.setdefault("SUPABASE_SERVICE_KEY", "test-service-role-key")
-os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
-os.environ.setdefault("SUPABASE_JWT_SECRET", "super-secret-jwt-key-for-testing-only")
+os.environ.setdefault("CLOUD_SQL_INSTANCE", "test-project:us-central1:test-instance")
+os.environ.setdefault("DB_NAME", "testdb")
+os.environ.setdefault("DB_USER", "testuser")
+os.environ.setdefault("DB_PASSWORD", "testpassword")
+os.environ.setdefault("JWT_SECRET", "super-secret-jwt-key-for-testing-only")
 os.environ.setdefault("PAYSTACK_SECRET_KEY", "sk_test_xxxxxxxxxxxxxxxxxxxx")
 os.environ.setdefault("ANTHROPIC_API_KEY", "sk-ant-test-xxxxxxxxxxxxxxxxxxxx")
 os.environ.setdefault("PUBLIC_BASE_URL", "http://localhost:3000")
@@ -46,10 +47,10 @@ def make_token():
         now = int(time.time())
         payload = {
             "sub": user_id,
+            "email": "test@example.com",
+            "role": role,
             "iat": now,
             "exp": now + 3600,
-            "app_metadata": {"role": role},
-            "user_metadata": {},
         }
         return jwt.encode(payload, _TEST_JWT_SECRET, algorithm="HS256")
 
