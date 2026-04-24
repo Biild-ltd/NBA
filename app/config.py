@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     FRONTEND_ORIGIN: str = ""
     ENVIRONMENT: str = "development"
 
+    # ── Payment bypass (set True while Paystack merchant account is pending) ────
+    BYPASS_PAYMENT: bool = False
+
 
 
 settings = Settings()

@@ -3,9 +3,11 @@
 Photo validation (Stage 1 + Stage 2) is delegated to photo_service.
 All DB operations use asyncpg directly (no asyncio.to_thread needed).
 """
+import asyncio
 import logging
 import secrets
 import string
+from datetime import datetime, timezone
 
 import asyncpg
 from fastapi import HTTPException, UploadFile, status
@@ -13,7 +15,7 @@ from fastapi import HTTPException, UploadFile, status
 from app.config import settings
 from app.db.postgres import get_pool
 from app.models.profile import ProfileCreate, ProfileUpdate
-from app.services import photo_service, storage_service
+from app.services import photo_service, qr_service, storage_service
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +132,27 @@ async def create_profile(
         except Exception as exc:
             logger.error("Profile insert failed: %s", exc)
             raise HTTPException(status_code=500, detail="INTERNAL_ERROR")
+
+    if settings.BYPASS_PAYMENT:
+        ref = f"NBA-FREE-{secrets.token_hex(8).upper()}"
+        now = datetime.now(timezone.utc)
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    """INSERT INTO public.payment_transactions
+                       (member_id, reference, amount, currency, status, verified_at)
+                       VALUES ($1, $2, 0, 'NGN', 'success', $3)""",
+                    user_id, ref, now,
+                )
+                row = await conn.fetchrow(
+                    """UPDATE public.member_profiles
+                       SET payment_status = 'paid', status = 'active', payment_ref = $1
+                       WHERE id = $2 RETURNING *""",
+                    ref, user_id,
+                )
+        asyncio.create_task(qr_service.generate_and_store(user_id))
+        logger.info("Payment bypassed on profile creation for user %s", user_id)
 
     return dict(row)
 
