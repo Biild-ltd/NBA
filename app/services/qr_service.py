@@ -42,6 +42,38 @@ def _generate_qr_png(profile_url: str) -> bytes:
     return buf.getvalue()
 
 
+# ── Private DB helpers (extracted for testability) ────────────────────────────
+
+async def _get_profile_by_id(member_id: str) -> dict | None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT id, profile_url FROM public.member_profiles WHERE id = $1",
+            member_id,
+        )
+    return dict(row) if row else None
+
+
+async def _update_qr_url(member_id: str, url: str) -> None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE public.member_profiles SET qr_code_url = $1 WHERE id = $2",
+            url,
+            member_id,
+        )
+
+
+async def _get_profile_by_uid(member_uid: str) -> dict | None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT id, profile_url FROM public.member_profiles WHERE member_uid = $1",
+            member_uid,
+        )
+    return dict(row) if row else None
+
+
 # ── Async public API ───────────────────────────────────────────────────────────
 
 async def generate_and_store(member_id: str) -> str | None:
@@ -51,26 +83,14 @@ async def generate_and_store(member_id: str) -> str | None:
     Designed to be called via asyncio.create_task() from the payment webhook handler.
     """
     try:
-        pool = await get_pool()
-        async with pool.acquire() as conn:
-            profile = await conn.fetchrow(
-                "SELECT id, profile_url FROM public.member_profiles WHERE id = $1",
-                member_id,
-            )
-
+        profile = await _get_profile_by_id(member_id)
         if not profile:
             logger.warning("QR generation: profile not found for member_id=%s", member_id)
             return None
 
         png_bytes = await asyncio.to_thread(_generate_qr_png, profile["profile_url"])
         url = await storage_service.upload_qr(member_id, png_bytes)
-
-        async with pool.acquire() as conn:
-            await conn.execute(
-                "UPDATE public.member_profiles SET qr_code_url = $1 WHERE id = $2",
-                url,
-                member_id,
-            )
+        await _update_qr_url(member_id, url)
 
         logger.info("QR code generated and stored for member_id=%s", member_id)
         return url
@@ -85,13 +105,7 @@ async def get_qr_bytes(member_uid: str) -> bytes:
     Raises:
         HTTPException 404 — member_uid not found.
     """
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-        profile = await conn.fetchrow(
-            "SELECT id, profile_url FROM public.member_profiles WHERE member_uid = $1",
-            member_uid,
-        )
-
+    profile = await _get_profile_by_uid(member_uid)
     if not profile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

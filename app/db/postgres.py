@@ -1,4 +1,7 @@
-"""Async PostgreSQL connection pool via Cloud SQL Python Connector.
+"""Async PostgreSQL connection pool via Cloud SQL Unix socket.
+
+On Cloud Run, Cloud SQL sockets are mounted at /cloudsql/<INSTANCE_CONNECTION_NAME>
+when --add-cloudsql-instances is set. asyncpg connects via that Unix domain socket.
 
 Usage in services:
     pool = await get_pool()
@@ -11,33 +14,23 @@ Call open_pool() on app startup and close_pool() on shutdown (wired in main.py l
 import logging
 
 import asyncpg
-from google.cloud.sql.connector import Connector
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 _pool: asyncpg.Pool | None = None
-_connector: Connector | None = None
 
 
 async def open_pool() -> None:
     """Initialise the connection pool. Called once at app startup."""
-    global _pool, _connector
-
-    _connector = Connector()
-
-    async def _getconn() -> asyncpg.Connection:
-        return await _connector.connect_async(
-            settings.CLOUD_SQL_INSTANCE,
-            "asyncpg",
-            user=settings.DB_USER,
-            password=settings.DB_PASSWORD,
-            db=settings.DB_NAME,
-        )
+    global _pool
 
     _pool = await asyncpg.create_pool(
-        connect=_getconn,
+        host=f"/cloudsql/{settings.CLOUD_SQL_INSTANCE}",
+        user=settings.DB_USER,
+        password=settings.DB_PASSWORD,
+        database=settings.DB_NAME,
         min_size=2,
         max_size=10,
         command_timeout=30,
@@ -47,14 +40,11 @@ async def open_pool() -> None:
 
 
 async def close_pool() -> None:
-    """Drain the pool and close the Cloud SQL connector. Called on shutdown."""
-    global _pool, _connector
+    """Drain the pool. Called on shutdown."""
+    global _pool
     if _pool:
         await _pool.close()
         _pool = None
-    if _connector:
-        _connector.close()
-        _connector = None
     logger.info("PostgreSQL connection pool closed")
 
 

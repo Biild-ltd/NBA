@@ -18,6 +18,8 @@ os.environ.setdefault("ANTHROPIC_API_KEY", "sk-ant-test-xxxxxxxxxxxxxxxxxxxx")
 os.environ.setdefault("PUBLIC_BASE_URL", "http://localhost:3000")
 os.environ.setdefault("ENVIRONMENT", "test")
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
 from jose import jwt
@@ -29,9 +31,18 @@ _TEST_JWT_SECRET = "super-secret-jwt-key-for-testing-only"
 
 @pytest.fixture(scope="session")
 def client() -> TestClient:
-    """Synchronous test client for the FastAPI app (session-scoped)."""
-    with TestClient(app) as c:
-        yield c
+    """Synchronous test client for the FastAPI app (session-scoped).
+
+    open_pool / close_pool are patched so the lifespan does not attempt a
+    real Cloud SQL connection during CI runs or local unit tests.
+    Individual tests mock service-layer functions for DB behaviour.
+    """
+    with (
+        patch("app.db.postgres.open_pool", AsyncMock()),
+        patch("app.db.postgres.close_pool", AsyncMock()),
+    ):
+        with TestClient(app) as c:
+            yield c
 
 
 @pytest.fixture(scope="session")

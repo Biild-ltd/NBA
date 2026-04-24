@@ -18,7 +18,7 @@ _PROFILE_ROW = {
     "id": _MEMBER_ID,
     "member_uid": _MEMBER_UID,
     "full_name": "Test Member",
-    "branch": "Lagos Branch",
+    "branch": "Lagos",
     "year_of_call": 2019,
     "enrollment_no": "SCN/12345",
     "status": "active",
@@ -42,7 +42,7 @@ _STATS = {
     "paid_members": 7,
     "unpaid_members": 3,
     "latest_member": {"full_name": "Test Member", "created_at": "2026-04-05T10:00:00+00:00"},
-    "members_by_branch": [{"branch": "Lagos Branch", "count": 5}],
+    "members_by_branch": [{"branch": "Lagos", "count": 5}],
 }
 
 _AUDIT_ENTRY = {
@@ -70,7 +70,7 @@ class TestAdminStats:
         data = resp.json()
         assert data["total_members"] == 10
         assert data["active_members"] == 7
-        assert data["members_by_branch"][0]["branch"] == "Lagos Branch"
+        assert data["members_by_branch"][0]["branch"] == "Lagos"
 
     def test_no_auth_returns_401(self, client):
         resp = client.get("/v1/admin/stats")
@@ -233,7 +233,7 @@ class TestAdminVCard:
         "FN:Test Member\r\nORG:Nigerian Bar Association\r\n"
         "TEL;TYPE=CELL:08012345678\r\nEMAIL:test@nba.org.ng\r\n"
         f"ADR:;;123 Law Chambers, Lagos;;;;\r\n"
-        f"NOTE:NBA Member - {_MEMBER_UID} | Branch: Lagos Branch | Year of Call: 2019\r\n"
+        f"NOTE:NBA Member - {_MEMBER_UID} | Branch: Lagos | Year of Call: 2019\r\n"
         "END:VCARD\r\n"
     )
 
@@ -316,7 +316,7 @@ class TestAdminRegenerateQR:
 # ── GET /v1/admin/export ──────────────────────────────────────────────────────
 
 class TestAdminExport:
-    _CSV = "member_uid,full_name,branch\nNBA-ABC123-XYZ12345,Test Member,Lagos Branch\n"
+    _CSV = "member_uid,full_name,branch\nNBA-ABC123-XYZ12345,Test Member,Lagos\n"
 
     def test_returns_csv(self, client, admin_headers):
         with patch(
@@ -372,7 +372,7 @@ class TestAdminCreateMember:
         "full_name": "Test Member",
         "enrollment_no": "SCN/12345",
         "year_of_call": "2019",
-        "branch": "Lagos Branch",
+        "branch": "Lagos",
         "phone_number": "08012345678",
         "email_address": "test@nba.org.ng",
         "office_address": "123 Law Chambers, Lagos",

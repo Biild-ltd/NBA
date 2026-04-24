@@ -9,6 +9,7 @@ Flow:
 
 All DB operations use asyncpg directly.
 """
+import asyncio
 import hashlib
 import hmac
 import json
@@ -40,6 +41,68 @@ def _verify_signature(raw_body: bytes, signature: str) -> bool:
     return hmac.compare_digest(computed, signature)
 
 
+# ── Private DB helpers (extracted for testability) ────────────────────────────
+
+async def _get_profile(user_id: str) -> dict | None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT id, email_address, payment_status FROM public.member_profiles WHERE id = $1",
+            user_id,
+        )
+    return dict(row) if row else None
+
+
+async def _insert_transaction(record: dict) -> None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """INSERT INTO public.payment_transactions
+               (member_id, reference, amount, currency, status)
+               VALUES ($1, $2, $3, $4, $5)""",
+            record["member_id"],
+            record["reference"],
+            record["amount"],
+            record["currency"],
+            record["status"],
+        )
+
+
+async def _get_tx_by_reference(reference: str) -> dict | None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM public.payment_transactions WHERE reference = $1",
+            reference,
+        )
+    return dict(row) if row else None
+
+
+async def _update_transaction(reference: str, now: datetime, payload_json: str) -> None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """UPDATE public.payment_transactions
+               SET status = 'success', verified_at = $1, paystack_data = $2::jsonb
+               WHERE reference = $3""",
+            now,
+            payload_json,
+            reference,
+        )
+
+
+async def _update_profile_payment(member_id: str, reference: str) -> None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """UPDATE public.member_profiles
+               SET payment_status = 'paid', status = 'active', payment_ref = $1
+               WHERE id = $2""",
+            reference,
+            member_id,
+        )
+
+
 # ── Async public API ───────────────────────────────────────────────────────────
 
 async def initialise_payment(user_id: str) -> dict:
@@ -50,12 +113,7 @@ async def initialise_payment(user_id: str) -> dict:
         HTTPException 409 — payment already completed.
         HTTPException 502 — Paystack API unavailable.
     """
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-        profile = await conn.fetchrow(
-            "SELECT id, email_address, payment_status FROM public.member_profiles WHERE id = $1",
-            user_id,
-        )
+    profile = await _get_profile(user_id)
 
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PROFILE_NOT_FOUND")
@@ -81,18 +139,13 @@ async def initialise_payment(user_id: str) -> dict:
         logger.error("Paystack initialise error: %s", exc)
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="PAYMENT_GATEWAY_ERROR")
 
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-        await conn.execute(
-            """INSERT INTO public.payment_transactions
-               (member_id, reference, amount, currency, status)
-               VALUES ($1, $2, $3, $4, $5)""",
-            user_id,
-            reference,
-            settings.MEMBERSHIP_FEE_KOBO,
-            "NGN",
-            "pending",
-        )
+    await _insert_transaction({
+        "member_id": user_id,
+        "reference": reference,
+        "amount": settings.MEMBERSHIP_FEE_KOBO,
+        "currency": "NGN",
+        "status": "pending",
+    })
 
     return {"authorization_url": data["authorization_url"], "reference": reference}
 
@@ -152,13 +205,7 @@ async def handle_webhook(raw_body: bytes, signature: str) -> None:
     reference = payload["data"]["reference"]
 
     # 3. Idempotency — already processed?
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-        existing = await conn.fetchrow(
-            "SELECT * FROM public.payment_transactions WHERE reference = $1",
-            reference,
-        )
-
+    existing = await _get_tx_by_reference(reference)
     if existing and existing["status"] == "success":
         logger.debug("Webhook already processed for reference %s", reference)
         return
@@ -180,35 +227,18 @@ async def handle_webhook(raw_body: bytes, signature: str) -> None:
         logger.info("Paystack verify returned non-success for %s", reference)
         return
 
-    # 5. Update payment_transactions and member_profiles atomically
+    # 5. Update payment_transactions and member_profiles
     now = datetime.now(timezone.utc)
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            await conn.execute(
-                """UPDATE public.payment_transactions
-                   SET status = 'success', verified_at = $1, paystack_data = $2::jsonb
-                   WHERE reference = $3""",
-                now,
-                json.dumps(payload),
-                reference,
-            )
-            tx = existing or await conn.fetchrow(
-                "SELECT member_id FROM public.payment_transactions WHERE reference = $1",
-                reference,
-            )
-            if tx:
-                await conn.execute(
-                    """UPDATE public.member_profiles
-                       SET payment_status = 'paid', status = 'active', payment_ref = $1
-                       WHERE id = $2""",
-                    reference,
-                    tx["member_id"],
-                )
+    await _update_transaction(reference, now, json.dumps(payload))
 
-    if tx:
-        import asyncio
-        asyncio.create_task(qr_service.generate_and_store(str(tx["member_id"])))
+    member_id = existing["member_id"] if existing else None
+    if not member_id:
+        tx = await _get_tx_by_reference(reference)
+        member_id = tx["member_id"] if tx else None
+
+    if member_id:
+        await _update_profile_payment(str(member_id), reference)
+        asyncio.create_task(qr_service.generate_and_store(str(member_id)))
 
 
 async def get_payment_history(user_id: str) -> list[dict]:
@@ -270,7 +300,6 @@ async def bypass_payment(user_id: str) -> dict:
                 user_id,
             )
 
-    import asyncio
     asyncio.create_task(qr_service.generate_and_store(user_id))
 
     logger.info("Payment bypassed (free period) for member %s, ref %s", user_id, reference)

@@ -293,7 +293,8 @@ class TestPhotoServiceStage2:
         with (
             patch("app.services.photo_service._compute_md5", return_value="abc123"),
             patch(
-                "app.services.photo_service._get_cached_result_sync",
+                "app.services.photo_service._get_cached_result",
+                new_callable=AsyncMock,
                 return_value=cached,
             ),
             patch("app.services.photo_service._call_claude_vision") as mock_claude,
@@ -311,7 +312,8 @@ class TestPhotoServiceStage2:
         with (
             patch("app.services.photo_service._compute_md5", return_value="abc123"),
             patch(
-                "app.services.photo_service._get_cached_result_sync",
+                "app.services.photo_service._get_cached_result",
+                new_callable=AsyncMock,
                 return_value=None,
             ),
             patch(
@@ -319,7 +321,8 @@ class TestPhotoServiceStage2:
                 return_value=claude_result,
             ),
             patch(
-                "app.services.photo_service._save_cached_result_sync"
+                "app.services.photo_service._save_cached_result",
+                new_callable=AsyncMock,
             ) as mock_save,
         ):
             result = await validate_photo_stage2(b"fake", "image/jpeg")
@@ -333,7 +336,8 @@ class TestPhotoServiceStage2:
         with (
             patch("app.services.photo_service._compute_md5", return_value="abc123"),
             patch(
-                "app.services.photo_service._get_cached_result_sync",
+                "app.services.photo_service._get_cached_result",
+                new_callable=AsyncMock,
                 return_value=None,
             ),
             patch(
@@ -356,7 +360,8 @@ class TestPhotoServiceStage2:
         with (
             patch("app.services.photo_service._compute_md5", return_value="abc123"),
             patch(
-                "app.services.photo_service._get_cached_result_sync",
+                "app.services.photo_service._get_cached_result",
+                new_callable=AsyncMock,
                 return_value=None,
             ),
             patch(
@@ -364,7 +369,8 @@ class TestPhotoServiceStage2:
                 return_value=fail_result,
             ),
             patch(
-                "app.services.photo_service._save_cached_result_sync"
+                "app.services.photo_service._save_cached_result",
+                new_callable=AsyncMock,
             ) as mock_save,
         ):
             result = await validate_photo_stage2(b"fake", "image/jpeg")
