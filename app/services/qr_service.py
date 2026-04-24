@@ -17,6 +17,7 @@ from PIL import Image
 import qrcode
 from qrcode.constants import ERROR_CORRECT_M
 
+from app.config import settings
 from app.db.postgres import get_pool
 from app.services import storage_service
 
@@ -48,7 +49,7 @@ async def _get_profile_by_id(member_id: str) -> dict | None:
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT id, profile_url FROM public.member_profiles WHERE id = $1",
+            "SELECT id, member_uid FROM public.member_profiles WHERE id = $1",
             member_id,
         )
     return dict(row) if row else None
@@ -68,7 +69,7 @@ async def _get_profile_by_uid(member_uid: str) -> dict | None:
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT id, profile_url FROM public.member_profiles WHERE member_uid = $1",
+            "SELECT id, member_uid FROM public.member_profiles WHERE member_uid = $1",
             member_uid,
         )
     return dict(row) if row else None
@@ -88,7 +89,8 @@ async def generate_and_store(member_id: str) -> str | None:
             logger.warning("QR generation: profile not found for member_id=%s", member_id)
             return None
 
-        png_bytes = await asyncio.to_thread(_generate_qr_png, profile["profile_url"])
+        frontend_url = f"{settings.FRONTEND_ORIGIN}/profile/{profile['member_uid']}"
+        png_bytes = await asyncio.to_thread(_generate_qr_png, frontend_url)
         url = await storage_service.upload_qr(member_id, png_bytes)
         await _update_qr_url(member_id, url)
 
@@ -111,4 +113,5 @@ async def get_qr_bytes(member_uid: str) -> bytes:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="PROFILE_NOT_FOUND",
         )
-    return await asyncio.to_thread(_generate_qr_png, profile["profile_url"])
+    frontend_url = f"{settings.FRONTEND_ORIGIN}/profile/{profile['member_uid']}"
+    return await asyncio.to_thread(_generate_qr_png, frontend_url)

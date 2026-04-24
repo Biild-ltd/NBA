@@ -76,7 +76,7 @@ class TestQRServiceUnit:
     async def test_generate_and_store_uploads_and_updates(self):
         from app.services.qr_service import generate_and_store
 
-        mock_profile = {"id": "test-user-00000000", "profile_url": _TEST_PROFILE_URL}
+        mock_profile = {"id": "test-user-00000000", "member_uid": _TEST_MEMBER_UID}
         signed_url = "https://storage.example.com/qrcodes/test-user-00000000/qr.png"
 
         with (
@@ -113,7 +113,7 @@ class TestQRServiceUnit:
     async def test_generate_and_store_returns_none_on_error(self):
         from app.services.qr_service import generate_and_store
 
-        mock_profile = {"id": "test-user-00000000", "profile_url": _TEST_PROFILE_URL}
+        mock_profile = {"id": "test-user-00000000", "member_uid": _TEST_MEMBER_UID}
 
         with (
             patch(

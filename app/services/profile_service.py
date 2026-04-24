@@ -94,7 +94,7 @@ async def create_profile(
             },
         )
 
-    profile_url = f"{settings.PUBLIC_BASE_URL}/profile/{uid}"
+    profile_url = f"{settings.FRONTEND_ORIGIN}/profile/{uid}"
 
     pool = await get_pool()
     async with pool.acquire() as conn:

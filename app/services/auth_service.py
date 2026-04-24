@@ -209,7 +209,7 @@ async def forgot_password(email: str) -> None:
         row["id"], hashed, expires_at,
     )
 
-    reset_link = f"{settings.PUBLIC_BASE_URL}/reset-password?token={raw}"
+    reset_link = f"{settings.FRONTEND_ORIGIN}/reset-password?token={raw}"
     await email_service.send_password_reset(email, reset_link)
 
 

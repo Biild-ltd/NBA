@@ -310,7 +310,7 @@ async def create_member(
     if uid is None:
         raise HTTPException(status_code=500, detail="INTERNAL_ERROR")
 
-    profile_url = f"{settings.PUBLIC_BASE_URL}/profile/{uid}"
+    profile_url = f"{settings.FRONTEND_ORIGIN}/profile/{uid}"
 
     pool = await get_pool()
     async with pool.acquire() as conn:
