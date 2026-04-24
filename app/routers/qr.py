@@ -1,10 +1,29 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 
+from app.db.postgres import get_pool
 from app.dependencies import get_current_user
 from app.services import qr_service
 
 router = APIRouter(prefix="/qr", tags=["QR Codes"])
+
+
+@router.post("/me/regenerate", status_code=status.HTTP_200_OK)
+async def regenerate_my_qr(
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Regenerate and re-upload the QR code for the authenticated member.
+
+    Returns the new qr_code_url. Safe to call multiple times.
+    """
+    user_id = current_user["sub"]
+    url = await qr_service.generate_and_store(user_id)
+    if url is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="PROFILE_NOT_FOUND",
+        )
+    return {"qr_code_url": url}
 
 
 @router.get("/{member_uid}", response_class=Response)
