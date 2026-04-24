@@ -17,9 +17,9 @@ steps:
     args:
       - build
       - -t
-      - europe-west1-docker.pkg.dev/$PROJECT_ID/nba/backend:$SHORT_SHA
+      - europe-west1-docker.pkg.dev/$PROJECT_ID/nba-prod-eu/backend:$SHORT_SHA
       - -t
-      - europe-west1-docker.pkg.dev/$PROJECT_ID/nba/backend:latest
+      - europe-west1-docker.pkg.dev/$PROJECT_ID/nba-prod-eu/backend:latest
       - .
 
   # 3. Push image to Artifact Registry
@@ -29,7 +29,7 @@ steps:
     args:
       - push
       - --all-tags
-      - europe-west1-docker.pkg.dev/$PROJECT_ID/nba/backend
+      - europe-west1-docker.pkg.dev/$PROJECT_ID/nba-prod-eu/backend
 
   # 4. Deploy to Cloud Run
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -40,7 +40,7 @@ steps:
       - run
       - deploy
       - nba-prod-eu
-      - --image=europe-west1-docker.pkg.dev/$PROJECT_ID/nba/backend:$SHORT_SHA
+      - --image=europe-west1-docker.pkg.dev/$PROJECT_ID/nba-prod-eu/backend:$SHORT_SHA
       - --region=europe-west1
       - --platform=managed
       - --cpu=2
