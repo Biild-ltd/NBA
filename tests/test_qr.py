@@ -48,9 +48,15 @@ class TestQREndpoints:
         assert f'filename="qr-{_TEST_MEMBER_UID}.png"' in resp.headers["content-disposition"]
         assert resp.content == _FAKE_PNG
 
-    def test_download_no_token_returns_401(self, client):
-        resp = client.get(f"/v1/qr/{_TEST_MEMBER_UID}/download")
-        assert resp.status_code == 401
+    def test_download_no_token_returns_png(self, client):
+        with patch(
+            "app.routers.qr.qr_service.get_qr_bytes",
+            new_callable=AsyncMock,
+            return_value=_FAKE_PNG,
+        ):
+            resp = client.get(f"/v1/qr/{_TEST_MEMBER_UID}/download")
+        assert resp.status_code == 200
+        assert resp.headers["content-type"] == "image/png"
 
     def test_download_profile_not_found_returns_404(self, client, auth_headers):
         with patch(

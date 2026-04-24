@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 
-from app.db.postgres import get_pool
 from app.dependencies import get_current_user
 from app.services import qr_service
 
@@ -38,10 +37,7 @@ async def get_qr(member_uid: str) -> Response:
 
 
 @router.get("/{member_uid}/download", response_class=Response)
-async def download_qr(
-    member_uid: str,
-    _: dict = Depends(get_current_user),
-) -> Response:
+async def download_qr(member_uid: str) -> Response:
     """Return the QR code PNG as a downloadable file attachment.
 
     No authentication required — QR codes are public assets (they only encode
