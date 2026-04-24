@@ -39,7 +39,7 @@ steps:
       - gcloud
       - run
       - deploy
-      - nba-backend
+      - nba-prod-eu
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/nba/backend:$SHORT_SHA
       - --region=${_REGION}
       - --platform=managed
@@ -68,7 +68,7 @@ steps:
       - --show-error
       - --max-time
       - "15"
-      - https://nba-backend-${_CLOUD_RUN_HASH}.${_REGION}.run.app/v1/healthz
+      - https://nba-prod-eu-${_CLOUD_RUN_HASH}.${_REGION}.run.app/v1/healthz
 
 substitutions:
   _REGION: europe-west1
