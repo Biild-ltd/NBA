@@ -38,8 +38,8 @@ def client() -> TestClient:
     Individual tests mock service-layer functions for DB behaviour.
     """
     with (
-        patch("app.db.postgres.open_pool", AsyncMock()),
-        patch("app.db.postgres.close_pool", AsyncMock()),
+        patch("app.main.open_pool", AsyncMock()),
+        patch("app.main.close_pool", AsyncMock()),
     ):
         with TestClient(app) as c:
             yield c
