@@ -8,6 +8,7 @@ asyncpg>=0.29.0
 
 # Auth
 passlib[bcrypt]==1.7.4
+bcrypt==3.2.2          # passlib 1.7.4 incompatible with bcrypt 4.x (__about__ removed)
 python-jose[cryptography]==3.3.0
 
 # Email
