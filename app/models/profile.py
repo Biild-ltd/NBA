@@ -105,3 +105,8 @@ class ProfileResponse(BaseModel):
     payment_status: str
     created_at: datetime
     updated_at: datetime
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def coerce_id(cls, v: object) -> str:
+        return str(v)

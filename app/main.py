@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 import uuid
@@ -156,14 +157,19 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONRe
 @app.exception_handler(ValidationError)
 async def pydantic_validation_handler(request: Request, exc: ValidationError) -> JSONResponse:
     """Catch Pydantic ValidationErrors raised manually inside route handlers
-    (e.g. when constructing a model from Form fields) and return 422."""
+    (e.g. when constructing a model from Form fields) and return 422.
+
+    Uses Pydantic's own JSON serializer to handle non-stdlib types (UUID, Url,
+    etc.) that appear in the ``input`` field of v2 error dicts.
+    """
+    errors = json.loads(exc.json())
     return JSONResponse(
         status_code=422,
         content={
             "error": {
                 "code": "VALIDATION_ERROR",
                 "message": "One or more input fields are invalid.",
-                "details": {"errors": exc.errors()},
+                "details": {"errors": errors},
             }
         },
     )
