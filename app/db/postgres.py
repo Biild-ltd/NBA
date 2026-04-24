@@ -11,24 +11,24 @@ Call open_pool() on app startup and close_pool() on shutdown (wired in main.py l
 import logging
 
 import asyncpg
-from google.cloud.sql.connector import AsyncConnector
+from google.cloud.sql.connector import Connector
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 _pool: asyncpg.Pool | None = None
-_connector: AsyncConnector | None = None
+_connector: Connector | None = None
 
 
 async def open_pool() -> None:
     """Initialise the connection pool. Called once at app startup."""
     global _pool, _connector
 
-    _connector = AsyncConnector()
+    _connector = Connector()
 
     async def _getconn() -> asyncpg.Connection:
-        return await _connector.connect(
+        return await _connector.connect_async(
             settings.CLOUD_SQL_INSTANCE,
             "asyncpg",
             user=settings.DB_USER,
@@ -53,7 +53,7 @@ async def close_pool() -> None:
         await _pool.close()
         _pool = None
     if _connector:
-        await _connector.close_async()
+        _connector.close()
         _connector = None
     logger.info("PostgreSQL connection pool closed")
 
