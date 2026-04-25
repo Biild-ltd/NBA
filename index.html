@@ -423,7 +423,10 @@ async function doSignup(){
   try{
     var res=await fetch(API_URL+'/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});
     var data=await res.json();
-    if(res.ok){showAuthErr('Account created! Please log in.',true);switchTab('login',document.querySelectorAll('.auth-tab')[1]);}
+    if(res.ok){
+      try{var lr=await fetch(API_URL+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});var ld=await lr.json();if(lr.ok){localStorage.setItem('nba_token',ld.access_token);localStorage.setItem('nba_refresh',ld.refresh_token);localStorage.setItem('nba_user_id',ld.user_id);await startApp();return;}}catch(e){}
+      showAuthErr('Account created! Please log in.',true);switchTab('login',document.querySelectorAll('.auth-tab')[1]);
+    }else if(res.status===409){var le=document.getElementById('login-email');if(le)le.value=email;showAuthErr('This email is already registered. Switching to log in.');switchTab('login',document.querySelectorAll('.auth-tab')[1]);}
     else{showAuthErr((data.error&&data.error.message)||'Registration failed.');}
   }catch(e){showAuthErr('Network error. Check your connection.');}
   finally{btn.disabled=false;btn.innerHTML='Create account &amp; apply &#8594;';}
