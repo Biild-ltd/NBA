@@ -275,6 +275,7 @@ class TestPaymentServiceUnit:
             "id": "test-user-00000000",
             "email_address": "test@nba.org.ng",
             "payment_status": "unpaid",
+            "year_of_call": 2015,   # < 2019 → Paystack flow
         }
         mock_paystack_resp = MagicMock()
         mock_paystack_resp.raise_for_status = MagicMock()
@@ -305,6 +306,35 @@ class TestPaymentServiceUnit:
         call_record = mock_insert.call_args[0][0]
         assert call_record["member_id"] == "test-user-00000000"
         assert call_record["status"] == "pending"
+
+    async def test_initialise_free_for_2019_and_later(self):
+        """Members called from 2019 onwards skip Paystack and are auto-activated."""
+        from app.services.payment_service import initialise_payment
+
+        mock_profile = {
+            "id": "test-user-00000001",
+            "email_address": "junior@nba.org.ng",
+            "payment_status": "unpaid",
+            "year_of_call": 2021,   # >= 2019 → free
+        }
+
+        with (
+            patch(
+                "app.services.payment_service._get_profile",
+                return_value=mock_profile,
+            ),
+            patch(
+                "app.services.payment_service.bypass_payment",
+                new_callable=AsyncMock,
+                return_value={"reference": "NBA-FREE-ABCD1234", "status": "success"},
+            ) as mock_bypass,
+        ):
+            result = await initialise_payment("test-user-00000001")
+
+        assert result["free"] is True
+        assert result["reference"] == "NBA-FREE-ABCD1234"
+        assert result["authorization_url"] is None
+        mock_bypass.assert_called_once_with("test-user-00000001")
 
     async def test_webhook_idempotency_skips_processing(self):
         from app.services.payment_service import handle_webhook

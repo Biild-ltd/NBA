@@ -277,13 +277,13 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
     <div class="panel" id="panel-payment">
       <div class="stepper"><div class="ss"><div class="sn done">&#10003;</div><span class="sl done">Your details</span></div><div class="sline done"></div><div class="ss"><div class="sn active">2</div><span class="sl active">Payment</span></div><div class="sline"></div><div class="ss"><div class="sn pend">3</div><span class="sl pend">Profile</span></div></div>
       <div class="pay-card">
-        <div class="pay-head"><h2>Registration fee</h2><p>Review your details and proceed to pay your NBA membership fee securely via Paystack.</p></div>
+        <div class="pay-head"><h2>Registration fee</h2><p>Review your details and complete your NBA membership registration.</p></div>
         <div class="pay-body">
           <div class="pay-member"><div id="payPhEl" class="pay-photo-ph">&#128100;</div><div><div class="pay-nm" id="payNm">&#8212;</div><div class="pay-br" id="payBr">&#8212;</div></div></div>
-          <div class="pay-lines"><div class="pline"><span class="pk">NBA digital ID card &amp; profile</span><span class="pv">&#8358;4,500</span></div><div class="pline"><span class="pk">Processing fee</span><span class="pv">&#8358;500</span></div></div>
-          <div class="pay-total"><span class="ptk">Total due today</span><span class="ptv" style="font-size:20px;font-weight:700;color:var(--green)">&#8358;5,000</span></div>
-          <p class="pm-note">Secure payment via Paystack. Card, bank transfer &amp; USSD accepted.</p>
-          <button class="pill-btn" id="payBtn" onclick="doPayment()">Pay &#8358;5,000 with Paystack &#8594;</button>
+          <div class="pay-lines" id="pay-lines-el"><div class="pline"><span class="pk">NBA digital ID card &amp; profile</span><span class="pv">&#8358;1,000</span></div><div class="pline"><span class="pk">Processing fee</span><span class="pv">&#8358;100</span></div></div>
+          <div class="pay-total"><span class="ptk">Total due today</span><span class="ptv" id="pay-total-val" style="font-size:20px;font-weight:700;color:var(--green)">&#8358;1,100</span></div>
+          <p class="pm-note" id="pay-note-el">Secure payment via Paystack. Card, bank transfer &amp; USSD accepted.</p>
+          <button class="pill-btn" id="payBtn" onclick="doPayment()">Pay &#8358;1,100 with Paystack &#8594;</button>
           <span class="back-link" onclick="showPanel('form',document.getElementById('nav-form'))">&#8592; Back to edit details</span>
         </div>
       </div>
@@ -461,6 +461,7 @@ async function startApp(){
       document.getElementById('topbar-av').textContent=userName.charAt(0).toUpperCase();
       renderProfilePanel(profile);
       var active=profile.status==='active';
+      if(!active)updatePayPanel(profile.year_of_call);
       ['nav-form','nav-payment'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=active?'none':'';});
       ['mob-form','mob-payment'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=active?'none':'';});
       showPanel('profile',document.getElementById('nav-profile'));
@@ -535,9 +536,10 @@ function goToPayment(){
   pending={name:name,enroll:enroll,year:year,branch:branch,phone:phone,email:email,address:address,photo:photoData};
   document.getElementById('payNm').textContent=name;document.getElementById('payBr').textContent=branch+' Branch \u00b7 Year of call: '+year;
   var el=document.getElementById('payPhEl');el.outerHTML='<img id="payPhEl" class="pay-photo" src="'+photoData+'" alt="'+name+'"/>';
-  showPanel('payment',document.getElementById('nav-payment'));
+  updatePayPanel(year);showPanel('payment',document.getElementById('nav-payment'));
 }
 function selMethod(el){document.querySelectorAll('.pm-opt').forEach(function(m){m.classList.remove('sel');});el.classList.add('sel');}
+function updatePayPanel(year){var isFree=parseInt(year)>=2019;var linesEl=document.getElementById('pay-lines-el');var totalEl=document.getElementById('pay-total-val');var noteEl=document.getElementById('pay-note-el');var btn=document.getElementById('payBtn');if(isFree){if(linesEl)linesEl.innerHTML='<div class="pline"><span class="pk">NBA digital ID card &amp; profile</span><span class="pv" style="color:var(--green)">Free</span></div>';if(totalEl)totalEl.innerHTML='Free';if(noteEl)noteEl.textContent='Members called from 2019 onwards receive complimentary digital membership.';if(btn)btn.innerHTML='Activate Free Membership &#8594;';}else{if(linesEl)linesEl.innerHTML='<div class="pline"><span class="pk">NBA digital ID card &amp; profile</span><span class="pv">&#8358;1,000</span></div><div class="pline"><span class="pk">Processing fee</span><span class="pv">&#8358;100</span></div>';if(totalEl)totalEl.innerHTML='&#8358;1,100';if(noteEl)noteEl.textContent='Secure payment via Paystack. Card, bank transfer &amp; USSD accepted.';if(btn)btn.innerHTML='Pay &#8358;1,100 with Paystack &#8594;';}}
 async function doPayment(){
   var btn=document.getElementById('payBtn');btn.disabled=true;
   btn.innerHTML='<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px"></span>Processing\u2026';
@@ -565,14 +567,15 @@ async function doPayment(){
       }
       alert(msg);return;
     }
-    // Step 2: initialise Paystack payment
+    // Step 2: initialise payment (free for 2019+, Paystack for earlier calls)
     var initRes=await fetch(API_URL+'/payments/initialise',{method:'POST',headers:authHeader()});
     var initData=await initRes.json();
     if(!initRes.ok){alert((initData.error&&initData.error.message)||'Could not initialise payment. Please try again.');return;}
-    // Step 3: redirect to Paystack checkout — user returns with ?reference=xxx
+    // Step 3: free activation or redirect to Paystack
+    if(initData.free){await startApp();return;}
     window.location.href=initData.authorization_url;
   }catch(err){alert('Something went wrong: '+err.message);}
-  finally{btn.disabled=false;btn.innerHTML='Pay &#8358;5,000 with Paystack &#8594;';}
+  finally{btn.disabled=false;var isFr=pending&&parseInt(pending.year)>=2019;btn.innerHTML=isFr?'Activate Free Membership &#8594;':'Pay &#8358;1,100 with Paystack &#8594;';}
 }
 /* ── Profile panel ───────────────────────────────────────────────────────── */
 function renderProfilePanel(p){
