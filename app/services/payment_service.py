@@ -47,7 +47,7 @@ async def _get_profile(user_id: str) -> dict | None:
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT id, email_address, payment_status FROM public.member_profiles WHERE id = $1",
+            "SELECT id, email_address, payment_status, year_of_call FROM public.member_profiles WHERE id = $1",
             user_id,
         )
     return dict(row) if row else None
@@ -119,6 +119,11 @@ async def initialise_payment(user_id: str) -> dict:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PROFILE_NOT_FOUND")
     if profile["payment_status"] == "paid":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="PAYMENT_ALREADY_COMPLETED")
+
+    # Members called to bar from 2019 onwards receive free digital membership
+    if profile["year_of_call"] >= 2019:
+        result = await bypass_payment(user_id)
+        return {"free": True, "reference": result["reference"], "authorization_url": None}
 
     reference = f"NBA-{secrets.token_hex(8).upper()}"
 

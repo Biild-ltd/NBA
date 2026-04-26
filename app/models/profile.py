@@ -16,7 +16,7 @@ class ProfileCreate(BaseModel):
     branch: str
     phone_number: str
     email_address: EmailStr
-    office_address: str = Field(min_length=10, max_length=500)
+    office_address: str = Field(min_length=5, max_length=500)
 
     @field_validator("enrollment_no")
     @classmethod
@@ -58,7 +58,7 @@ class ProfileUpdate(BaseModel):
     year_of_call: int | None = Field(default=None, ge=1900)
     branch: str | None = None
     phone_number: str | None = None
-    office_address: str | None = Field(default=None, min_length=10, max_length=500)
+    office_address: str | None = Field(default=None, min_length=5, max_length=500)
 
     @field_validator("year_of_call")
     @classmethod

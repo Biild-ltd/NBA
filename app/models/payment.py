@@ -3,8 +3,9 @@ from pydantic import BaseModel
 
 class PaymentInitResponse(BaseModel):
     """Response for POST /payments/initialise."""
-    authorization_url: str
-    reference: str
+    authorization_url: str | None = None   # None when free=True
+    reference: str | None = None
+    free: bool = False                     # True when year_of_call >= 2019
 
 
 class PaymentVerifyResponse(BaseModel):
