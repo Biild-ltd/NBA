@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
+from app.config import settings
 from app.dependencies import get_current_user
 from app.limiter import limiter
 from app.models.payment import (
@@ -75,10 +76,14 @@ async def bypass_payment(
     """Temporarily activate membership at ₦0 — Paystack account pending verification.
 
     Records a zero-amount transaction, marks the profile as paid/active, and
-    triggers QR code generation. The full Paystack flow remains in place and will
-    be re-enabled once the merchant account is verified. Rate limited to 5 requests
-    per minute per IP.
+    triggers QR code generation. Disabled (returns 403) when BYPASS_PAYMENT=false.
+    Rate limited to 5 requests per minute per IP.
     """
+    if not settings.BYPASS_PAYMENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="BYPASS_DISABLED",
+        )
     result = await payment_service.bypass_payment(current_user["sub"])
     return PaymentBypassResponse(**result)
 

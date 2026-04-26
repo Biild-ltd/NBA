@@ -51,7 +51,7 @@ steps:
       - --add-cloudsql-instances=$PROJECT_ID:europe-west1:${_CLOUD_SQL_INSTANCE_NAME}
       - --vpc-connector=nba-vpc-connector
       - --vpc-egress=private-ranges-only
-      - --set-env-vars=ENVIRONMENT=production,DB_NAME=postgres,DB_USER=postgres,GCS_BUCKET=nba-member-assets,PUBLIC_BASE_URL=https://api.nba.alphacards.dev,FRONTEND_ORIGIN=https://nba.alphacards.dev,SMTP_HOST=smtp.resend.com,SMTP_PORT=587,SMTP_FROM=noreply@nba.alphacards.dev,CLOUD_SQL_INSTANCE=$PROJECT_ID:europe-west1:${_CLOUD_SQL_INSTANCE_NAME},BYPASS_PAYMENT=true
+      - --set-env-vars=ENVIRONMENT=production,DB_NAME=postgres,DB_USER=postgres,GCS_BUCKET=nba-member-assets,PUBLIC_BASE_URL=https://api.nba.alphacards.dev,FRONTEND_ORIGIN=https://nba.alphacards.dev,SMTP_HOST=smtp.resend.com,SMTP_PORT=587,SMTP_FROM=noreply@nba.alphacards.dev,CLOUD_SQL_INSTANCE=$PROJECT_ID:europe-west1:${_CLOUD_SQL_INSTANCE_NAME},BYPASS_PAYMENT=false,MEMBERSHIP_FEE_KOBO=500000
       - --set-secrets=DB_PASSWORD=DB_PASSWORD:latest,JWT_SECRET=JWT_SECRET:latest,PAYSTACK_SECRET_KEY=PAYSTACK_SECRET_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest
       - --quiet
 

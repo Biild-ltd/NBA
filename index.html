@@ -277,16 +277,13 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
     <div class="panel" id="panel-payment">
       <div class="stepper"><div class="ss"><div class="sn done">&#10003;</div><span class="sl done">Your details</span></div><div class="sline done"></div><div class="ss"><div class="sn active">2</div><span class="sl active">Payment</span></div><div class="sline"></div><div class="ss"><div class="sn pend">3</div><span class="sl pend">Profile</span></div></div>
       <div class="pay-card">
-        <div class="pay-head"><h2>Registration fee</h2><p>Review your details and confirm to generate your member profile.</p></div>
+        <div class="pay-head"><h2>Registration fee</h2><p>Review your details and proceed to pay your NBA membership fee securely via Paystack.</p></div>
         <div class="pay-body">
           <div class="pay-member"><div id="payPhEl" class="pay-photo-ph">&#128100;</div><div><div class="pay-nm" id="payNm">&#8212;</div><div class="pay-br" id="payBr">&#8212;</div></div></div>
-          <div class="pay-lines"><div class="pline"><span class="pk">NBA ID card &amp; digital profile</span><span class="pv strike">&#8358;1,000</span></div><div class="pline"><span class="pk">Processing fee</span><span class="pv strike">&#8358;100</span></div><div class="pline"><span class="pk" style="color:var(--green);font-weight:600">Promo discount (LAUNCH2025)</span><span class="pv disc">&#8722;&#8358;1,100</span></div></div>
-          <div class="pay-total"><span class="ptk">Total due today</span><span class="free-pill">FREE</span></div>
-          <div class="promo-notice"><span style="font-size:15px;flex-shrink:0">&#127881;</span><span><strong>Launch promotion applied.</strong> Free during NBA platform launch. Standard fee of &#8358;1,000 applies after.</span></div>
-          <div class="pm-label">Payment method <span style="color:var(--green);font-size:11px;font-weight:600;margin-left:5px">No charge today</span></div>
-          <div class="pm-opts"><div class="pm-opt sel" onclick="selMethod(this)"><span class="pmi">&#127970;</span>Bank transfer</div><div class="pm-opt" onclick="selMethod(this)"><span class="pmi">&#128179;</span>Card</div><div class="pm-opt" onclick="selMethod(this)"><span class="pmi">&#128241;</span>USSD</div></div>
-          <p class="pm-note">No payment will be collected &#8212; balance is &#8358;0.00</p>
-          <button class="pill-btn" id="payBtn" onclick="doPayment()">Confirm &amp; complete &#8212; Free</button>
+          <div class="pay-lines"><div class="pline"><span class="pk">NBA digital ID card &amp; profile</span><span class="pv">&#8358;4,500</span></div><div class="pline"><span class="pk">Processing fee</span><span class="pv">&#8358;500</span></div></div>
+          <div class="pay-total"><span class="ptk">Total due today</span><span class="ptv" style="font-size:20px;font-weight:700;color:var(--green)">&#8358;5,000</span></div>
+          <p class="pm-note">Secure payment via Paystack. Card, bank transfer &amp; USSD accepted.</p>
+          <button class="pill-btn" id="payBtn" onclick="doPayment()">Pay &#8358;5,000 with Paystack &#8594;</button>
           <span class="back-link" onclick="showPanel('form',document.getElementById('nav-form'))">&#8592; Back to edit details</span>
         </div>
       </div>
@@ -423,7 +420,10 @@ async function doSignup(){
   try{
     var res=await fetch(API_URL+'/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});
     var data=await res.json();
-    if(res.ok){showAuthErr('Account created! Please log in.',true);switchTab('login',document.querySelectorAll('.auth-tab')[1]);}
+    if(res.ok){
+      try{var lr=await fetch(API_URL+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});var ld=await lr.json();if(lr.ok){localStorage.setItem('nba_token',ld.access_token);localStorage.setItem('nba_refresh',ld.refresh_token);localStorage.setItem('nba_user_id',ld.user_id);await startApp();return;}}catch(e){}
+      showAuthErr('Account created! Please log in.',true);switchTab('login',document.querySelectorAll('.auth-tab')[1]);
+    }else if(res.status===409){var le=document.getElementById('login-email');if(le)le.value=email;showAuthErr('This email is already registered. Switching to log in.');switchTab('login',document.querySelectorAll('.auth-tab')[1]);}
     else{showAuthErr((data.error&&data.error.message)||'Registration failed.');}
   }catch(e){showAuthErr('Network error. Check your connection.');}
   finally{btn.disabled=false;btn.innerHTML='Create account &amp; apply &#8594;';}
@@ -476,9 +476,9 @@ async function verifyAndShowProfile(reference){
   if(adminNav)adminNav.style.display=isAdmin()?'':'none';
   if(mobAdmin)mobAdmin.style.display=isAdmin()?'':'none';
   try{
-    // Verify payment (checks DB — webhook may not have fired yet, that's ok)
-    await fetch(API_URL+'/payments/verify/'+reference,{headers:authHeader()});
-    // Load profile regardless of payment status
+    // Poll up to 10 s for the Paystack webhook to process the payment
+    for(var i=0;i<10;i++){var vr=await fetch(API_URL+'/payments/verify/'+reference,{headers:authHeader()});if(vr.ok){var vd=await vr.json();if(vd.status==='success')break;}if(i<9)await new Promise(function(r){setTimeout(r,1000);});}
+    // Load profile
     var res=await fetch(API_URL+'/profiles/me',{headers:authHeader()});
     if(res.status===401){logout();return;}
     if(res.ok){
@@ -565,22 +565,14 @@ async function doPayment(){
       }
       alert(msg);return;
     }
-    // Step 2: bypass payment (free period — Paystack account pending verification)
-    var bypassRes=await fetch(API_URL+'/payments/bypass',{method:'POST',headers:authHeader()});
-    if(!bypassRes.ok){alert('Could not complete registration. Please try again.');return;}
-    // Step 3: load profile and navigate directly to profile panel
-    var res=await fetch(API_URL+'/profiles/me',{headers:authHeader()});
-    if(!res.ok){alert('Profile not found after registration. Please refresh.');return;}
-    var profile=await res.json();
-    userName=(profile.full_name||'Member').split(' ')[0];
-    document.getElementById('topbar-name').textContent=userName.toUpperCase();
-    document.getElementById('topbar-av').textContent=userName.charAt(0).toUpperCase();
-    renderProfilePanel(profile);
-    ['nav-form','nav-payment'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='none';});
-    ['mob-form','mob-payment'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='none';});
-    showPanel('profile',document.getElementById('nav-profile'));
+    // Step 2: initialise Paystack payment
+    var initRes=await fetch(API_URL+'/payments/initialise',{method:'POST',headers:authHeader()});
+    var initData=await initRes.json();
+    if(!initRes.ok){alert((initData.error&&initData.error.message)||'Could not initialise payment. Please try again.');return;}
+    // Step 3: redirect to Paystack checkout — user returns with ?reference=xxx
+    window.location.href=initData.authorization_url;
   }catch(err){alert('Something went wrong: '+err.message);}
-  finally{btn.disabled=false;btn.innerHTML='Confirm &amp; complete &mdash; Free';}
+  finally{btn.disabled=false;btn.innerHTML='Pay &#8358;5,000 with Paystack &#8594;';}
 }
 /* ── Profile panel ───────────────────────────────────────────────────────── */
 function renderProfilePanel(p){
