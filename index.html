@@ -291,6 +291,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
           <div class="pay-total"><span class="ptk">Total due today</span><span class="ptv" id="pay-total-val" style="font-size:20px;font-weight:700;color:var(--green)">&#8358;1,100</span></div>
           <p class="pm-note" id="pay-note-el">Secure payment via Paystack. Card, bank transfer &amp; USSD accepted.</p>
           <button class="pill-btn" id="payBtn" onclick="doPayment()">Pay &#8358;1,100 with Paystack &#8594;</button>
+          <div class="err-box" id="payErr" style="margin-top:10px;display:none"></div>
           <span class="back-link" onclick="showPanel('form',document.getElementById('nav-form'))">&#8592; Back to edit details</span>
         </div>
       </div>
@@ -416,6 +417,9 @@ function authHeader(){var t=localStorage.getItem('nba_token')||'';return t?{'Aut
 function setMobActive(id){document.querySelectorAll('.mob-item').forEach(function(b){b.classList.remove('active');});var el=document.getElementById(id);if(el)el.classList.add('active');}
 function showPanel(id,navEl){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});document.getElementById('panel-'+id).classList.add('active');if(navEl)navEl.classList.add('active');var mm={profile:'mob-profile',form:'mob-form',payment:'mob-payment',admin:'mob-admin'};if(mm[id])setMobActive(mm[id]);}
 function showErr(msg){var el=document.getElementById('fErr');el.textContent=msg;el.style.display='block';setTimeout(function(){el.style.display='none';},5000);}
+function showPayErr(msg){var el=document.getElementById('payErr');if(el){el.textContent=msg;el.style.display='block';}}
+function clearPayErr(){var el=document.getElementById('payErr');if(el){el.style.display='none';el.textContent='';}}
+
 /* ── Auth ─────────────────────────────────────────────────────────────────── */
 async function doSignup(){
   var email=document.getElementById('auth-email').value.trim();
@@ -534,7 +538,7 @@ async function runAICheck(dataUrl){
     var data=await res.json();
     document.getElementById('aiSpin').style.display='none';
     if(res.ok&&data.passed){box.className='ai-box pass';document.getElementById('aiMsg').innerHTML='<strong>&#10003; Photo approved</strong> &#8212; Score: '+(Math.round((data.score||1)*100))+'%';aiOk=true;}
-    else if(!res.ok&&data.error&&data.error.code==='PHOTO_REJECTED'){var reasons=(data.error.details&&data.error.details.failures||[]).join(' ');box.className='ai-box fail';document.getElementById('aiMsg').innerHTML='<strong>Photo rejected:</strong> '+(reasons||'Photo did not pass compliance checks.')+' Please upload a different photo.';photoData=null;aiOk=false;pzImg.src='';pzPrev.style.display='none';pzPh.style.display='block';pInput.value='';}
+    else if(!res.ok&&data.error&&data.error.code==='PHOTO_REJECTED'){var failures=data.error.details&&data.error.details.failures||[];var reasonsHtml=failures.length?'<ul style="margin:6px 0 0 0;padding-left:18px;text-align:left">'+failures.map(function(r){return '<li>'+r+'</li>';}).join('')+'</ul>':'';box.className='ai-box fail';document.getElementById('aiMsg').innerHTML='<strong>Photo rejected</strong> &mdash; please upload a different passport-style photo.'+reasonsHtml;aiOk=false;pInput.value='';}
     else{throw new Error((data.error&&data.error.message)||'Validation failed');}
   }catch(e){document.getElementById('aiSpin').style.display='none';document.getElementById('aiBox').className='ai-box pass';document.getElementById('aiMsg').innerHTML='<strong>&#10003; Photo accepted</strong> (offline fallback)';aiOk=true;}
 }
@@ -550,10 +554,10 @@ function goToPayment(){
 function selMethod(el){document.querySelectorAll('.pm-opt').forEach(function(m){m.classList.remove('sel');});el.classList.add('sel');}
 function updatePayPanel(year){var isFree=parseInt(year)>=2019;var linesEl=document.getElementById('pay-lines-el');var totalEl=document.getElementById('pay-total-val');var noteEl=document.getElementById('pay-note-el');var btn=document.getElementById('payBtn');if(isFree){if(linesEl)linesEl.innerHTML='<div class="pline"><span class="pk">NBA digital ID card &amp; profile</span><span class="pv" style="color:var(--green)">Free</span></div>';if(totalEl)totalEl.innerHTML='Free';if(noteEl)noteEl.textContent='Members called from 2019 onwards receive complimentary digital membership.';if(btn)btn.innerHTML='Activate Free Membership &#8594;';}else{if(linesEl)linesEl.innerHTML='<div class="pline"><span class="pk">NBA digital ID card &amp; profile</span><span class="pv">&#8358;800</span></div><div class="pline"><span class="pk">Processing fee</span><span class="pv">&#8358;300</span></div>';if(totalEl)totalEl.innerHTML='&#8358;1,100';if(noteEl)noteEl.textContent='Secure payment via Paystack. Card, bank transfer &amp; USSD accepted.';if(btn)btn.innerHTML='Pay &#8358;1,100 with Paystack &#8594;';}}
 async function doPayment(){
-  var btn=document.getElementById('payBtn');btn.disabled=true;
+  var btn=document.getElementById('payBtn');btn.disabled=true;clearPayErr();
   btn.innerHTML='<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px"></span>Processing\u2026';
   try{
-    // Step 1: create profile
+    // Step 1: create profile (skip if already created in a prior attempt)
     var parts=pending.photo.split(',');var mime=parts[0].split(':')[1].split(';')[0];
     var byteStr=atob(parts[1]);var arr=new Uint8Array(byteStr.length);for(var i=0;i<byteStr.length;i++)arr[i]=byteStr.charCodeAt(i);
     var blob=new Blob([arr],{type:mime});
@@ -567,23 +571,31 @@ async function doPayment(){
     var profileData=await profileRes.json();
     if(!profileRes.ok){
       var err=profileData.error||{};
-      var msg=err.message||'Profile creation failed.';
-      if(err.code==='DUPLICATE_ENROLLMENT'){
-        msg='This enrollment number is already registered.';
-      }else if(err.code==='VALIDATION_ERROR'&&err.details&&err.details.errors&&err.details.errors.length){
-        var fieldLines=err.details.errors.map(function(e){var field=Array.isArray(e.loc)&&e.loc.length?e.loc[e.loc.length-1]:'field';return '\u2022 '+field+': '+(e.msg||'invalid');}).join('\n');
-        msg='Please fix the following fields:\n\n'+fieldLines;
+      if(profileRes.status===409&&err.code!=='DUPLICATE_ENROLLMENT'){
+        // Profile was already created in a prior attempt — fall through to payment init
+      }else{
+        var msg=err.message||'Profile creation failed. Please try again.';
+        if(err.code==='DUPLICATE_ENROLLMENT'){
+          msg='This enrollment number is already registered to another account. Please check your enrollment number and try again.';
+        }else if(err.code==='VALIDATION_ERROR'&&err.details&&err.details.errors&&err.details.errors.length){
+          var fieldLines=err.details.errors.map(function(e){var field=Array.isArray(e.loc)&&e.loc.length?e.loc[e.loc.length-1]:'field';return '\u2022 '+field+': '+(e.msg||'invalid');}).join('\n');
+          msg='Please fix the following:\n'+fieldLines;
+        }
+        showPayErr(msg);return;
       }
-      alert(msg);return;
     }
     // Step 2: initialise payment (free for 2019+, Paystack for earlier calls)
     var initRes=await fetch(API_URL+'/payments/initialise',{method:'POST',headers:authHeader()});
     var initData=await initRes.json();
-    if(!initRes.ok){alert((initData.error&&initData.error.message)||'Could not initialise payment. Please try again.');return;}
+    if(!initRes.ok){
+      if(initRes.status===409){await startApp();return;}
+      showPayErr((initData.error&&initData.error.message)||'Could not initialise payment. Please try again in a moment.');
+      return;
+    }
     // Step 3: free activation or redirect to Paystack
     if(initData.free){await startApp();return;}
     window.location.href=initData.authorization_url;
-  }catch(err){alert('Something went wrong: '+err.message);}
+  }catch(err){showPayErr('Something went wrong. Please check your connection and try again.');}
   finally{btn.disabled=false;var isFr=pending&&parseInt(pending.year)>=2019;btn.innerHTML=isFr?'Activate Free Membership &#8594;':'Pay &#8358;1,100 with Paystack &#8594;';}
 }
 /* ── Profile panel ───────────────────────────────────────────────────────── */
