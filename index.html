@@ -230,7 +230,14 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
         <div class="af"><label>Email address</label><input type="text" id="login-email" placeholder="e.g. adaeze@lawfirm.ng"/></div>
         <div class="af"><label>Password</label><input type="password" id="login-password" placeholder="Your password"/></div>
         <button class="pill-btn" onclick="doLogin()">Log in &#8594;</button>
-        <div class="auth-foot">No account? <span onclick="switchTab('signup',document.querySelectorAll('.auth-tab')[0])">Sign up</span></div>
+        <div class="auth-foot">No account? <span onclick="switchTab('signup',document.querySelectorAll('.auth-tab')[0])">Sign up</span> &nbsp;&middot;&nbsp; <span onclick="showForgotForm()">Forgot password?</span></div>
+      </div>
+      <div id="tab-forgot" style="display:none">
+        <div class="auth-h">Reset password</div>
+        <div class="auth-p">Enter your email and we'll send you a reset link valid for 1 hour.</div>
+        <div id="forgot-input"><div class="af"><label>Email address</label><input type="text" id="forgot-email" placeholder="e.g. adaeze@lawfirm.ng" autocomplete="email"/></div><button class="pill-btn" onclick="doForgotPassword()" id="forgot-btn">Send reset link &#8594;</button></div>
+        <div id="forgot-done" style="display:none;text-align:center;padding:8px 0"><div style="font-size:36px;margin-bottom:10px">&#9993;</div><div style="font-weight:700;font-size:15px;color:#111827;margin-bottom:6px">Check your inbox</div><div style="font-size:13px;color:#6b7280">If an account exists for that email, a reset link has been sent. It expires in 1 hour.</div></div>
+        <div class="auth-foot" id="forgot-foot"><span onclick="switchTab('login',document.querySelectorAll('.auth-tab')[1])">&#8592; Back to log in</span></div>
       </div>
     </div>
   </div>
@@ -399,7 +406,9 @@ const API_URL='https://api.nba.alphacards.dev/v1';
 var photoData=null,aiOk=false,pending={},currentM=null,userName='Member',modalPhotoFile=null,currentPublicProfile=null;
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 function showPage(id){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('show');});document.getElementById(id).classList.add('show');window.scrollTo(0,0);}
-function switchTab(t,el){document.querySelectorAll('.auth-tab').forEach(function(x){x.classList.remove('active');});el.classList.add('active');document.getElementById('tab-signup').style.display=t==='signup'?'block':'none';document.getElementById('tab-login').style.display=t==='login'?'block':'none';}
+function switchTab(t,el){document.querySelectorAll('.auth-tab').forEach(function(x){x.classList.remove('active');});el.classList.add('active');document.getElementById('tab-signup').style.display=t==='signup'?'block':'none';document.getElementById('tab-login').style.display=t==='login'?'block':'none';var fg=document.getElementById('tab-forgot');if(fg)fg.style.display='none';}
+function showForgotForm(){var le=document.getElementById('login-email');var fe=document.getElementById('forgot-email');if(fe&&le)fe.value=le.value;document.getElementById('tab-login').style.display='none';document.getElementById('tab-signup').style.display='none';document.getElementById('tab-forgot').style.display='block';document.getElementById('forgot-input').style.display='block';document.getElementById('forgot-done').style.display='none';document.getElementById('forgot-foot').style.display='block';var authErr=document.getElementById('authErr');if(authErr)authErr.style.display='none';}
+async function doForgotPassword(){var email=document.getElementById('forgot-email').value.trim();if(!email)return showAuthErr('Please enter your email address.');var btn=document.getElementById('forgot-btn');btn.disabled=true;btn.textContent='Sending\u2026';try{await fetch(API_URL+'/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})});document.getElementById('forgot-input').style.display='none';document.getElementById('forgot-done').style.display='block';}catch(e){showAuthErr('Network error. Please try again.');}finally{btn.disabled=false;btn.innerHTML='Send reset link &#8594;';}}
 function cloneLogos(){var src=document.getElementById('nba-logo-src');if(!src)return;var s=src.src;['logo-auth','logo-hero','logo-sb','logo-pub'].forEach(function(id){var el=document.getElementById(id);if(el)el.src=s;});}
 function showAuthErr(msg,success){var el=document.getElementById('authErr');if(!el){el=document.createElement('div');el.id='authErr';el.style.cssText='margin-top:12px;padding:10px 14px;border-radius:6px;font-size:13px;font-weight:500;';var box=document.querySelector('.auth-box');if(box)box.appendChild(el);}el.textContent=msg;el.style.background=success?'#e8f5e9':'#fef2f2';el.style.color=success?'#2d7a3d':'#dc2626';el.style.display='block';}
 function isAdmin(){var token=localStorage.getItem('nba_token');if(!token)return false;try{var payload=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));return payload.role==='admin';}catch(e){return false;}}
@@ -862,6 +871,7 @@ window.addEventListener('load',function(){
   if(pWrap){var pInput2=document.getElementById('f-phone');pInput2.addEventListener('focus',function(){pWrap.style.borderColor='var(--green)';pWrap.style.boxShadow='0 0 0 3px rgba(58,158,79,.1)';});pInput2.addEventListener('blur',function(){pWrap.style.borderColor='var(--g200)';pWrap.style.boxShadow='';});}
   ['auth-email','signup-password','signup-confirm'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')doSignup();});});
   ['login-email','login-password'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});});
+  var fe=document.getElementById('forgot-email');if(fe)fe.addEventListener('keydown',function(e){if(e.key==='Enter')doForgotPassword();});
   var path=window.location.pathname;
   var params=new URLSearchParams(window.location.search);
   // Password reset link: /reset-password?token=...
