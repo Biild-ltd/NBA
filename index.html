@@ -303,9 +303,16 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
         <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:16px 18px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);font-weight:700;margin-bottom:5px">Active members</div><div id="stActive" style="font-size:28px;font-weight:700;color:var(--g900)">0</div></div>
         <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:16px 18px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);font-weight:700;margin-bottom:5px">Latest member</div><div id="stLatest" style="font-size:14px;font-weight:700;color:var(--g900);padding-top:5px">&#8212;</div></div>
       </div>
-      <div style="margin-bottom:12px"><input type="text" id="adminQ" placeholder="Search by name, branch or year&#8230;" oninput="renderAdmin()" style="width:100%;padding:10px 13px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:13px;color:var(--g900);outline:none;background:var(--white)"/></div>
+      <div style="margin-bottom:12px"><input type="text" id="adminQ" placeholder="Search by name, branch or year&#8230;" oninput="_adminPage=1;renderAdmin()" style="width:100%;padding:10px 13px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:13px;color:var(--g900);outline:none;background:var(--white)"/></div>
       <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);overflow:hidden;overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:900px"><thead><tr style="background:var(--green)"><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Photo</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Full name</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Branch</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Year</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Enrolment / SCN</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Email</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Phone</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Status</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Actions</th></tr></thead><tbody id="adminBody"></tbody></table>
+      </div>
+      <div id="adminPager" style="display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:14px;font-size:13px;color:var(--g500)">
+        <span id="adminPagerInfo"></span>
+        <div style="display:flex;gap:6px">
+          <button id="adminPrevBtn" onclick="adminChangePage(-1)" style="padding:6px 14px;border:1.5px solid var(--g200);border-radius:var(--r);background:var(--white);cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;color:var(--g700)" disabled>&#8592; Prev</button>
+          <button id="adminNextBtn" onclick="adminChangePage(1)" style="padding:6px 14px;border:1.5px solid var(--g200);border-radius:var(--r);background:var(--white);cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;color:var(--g700)" disabled>Next &#8594;</button>
+        </div>
       </div>
     </div>
   </div>
@@ -668,22 +675,43 @@ function doShare(){
   else navigator.clipboard.writeText(url).then(function(){alert('Profile link copied!');}).catch(function(){alert(url);});
 }
 /* ── Admin panel ─────────────────────────────────────────────────────────── */
+var _adminPage=1;
+var _adminPageSize=20;
+function adminChangePage(delta){_adminPage=Math.max(1,_adminPage+delta);renderAdmin();}
 async function renderAdmin(){
   if(!isAdmin())return;
   var q=(document.getElementById('adminQ')?document.getElementById('adminQ').value:'');
-  var qs=q?'?q='+encodeURIComponent(q):'';
+  var params='?page='+_adminPage+'&page_size='+_adminPageSize;
+  if(q)params+='&q='+encodeURIComponent(q);
   var tb=document.getElementById('adminBody');
   try{
     var [membersRes,statsRes]=await Promise.all([
-      fetch(API_URL+'/admin/members'+qs,{headers:authHeader()}),
+      fetch(API_URL+'/admin/members'+params,{headers:authHeader()}),
       fetch(API_URL+'/admin/stats',{headers:authHeader()}),
     ]);
     if(!membersRes.ok){tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--g400)">Could not load members.</td></tr>';return;}
     var data=await membersRes.json();
     var members=data.members||[];
-    document.getElementById('stTotal').textContent=data.total||members.length;
+    var total=data.total||0;
+    document.getElementById('stTotal').textContent=total;
     if(statsRes.ok){var sd=await statsRes.json();document.getElementById('stActive').textContent=sd.active_members||0;}
     document.getElementById('stLatest').textContent=members[0]?members[0].full_name.split(' ').slice(0,2).join(' '):'\u2014';
+    /* pagination controls */
+    var totalPages=Math.max(1,Math.ceil(total/_adminPageSize));
+    var pager=document.getElementById('adminPager');
+    var pagerInfo=document.getElementById('adminPagerInfo');
+    var prevBtn=document.getElementById('adminPrevBtn');
+    var nextBtn=document.getElementById('adminNextBtn');
+    if(total>_adminPageSize){
+      pager.style.display='flex';
+      var from=(_adminPage-1)*_adminPageSize+1;
+      var to=Math.min(_adminPage*_adminPageSize,total);
+      pagerInfo.textContent='Showing '+from+'\u2013'+to+' of '+total+' members (page '+_adminPage+' of '+totalPages+')';
+      prevBtn.disabled=(_adminPage<=1);
+      nextBtn.disabled=(_adminPage>=totalPages);
+    }else{
+      pager.style.display='none';
+    }
     if(!members.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--g400)">No members found.</td></tr>';return;}
     var bs='padding:3px 9px;border:1px solid #e5e7eb;border-radius:4px;font-size:11px;background:transparent;cursor:pointer;color:#374151;font-family:Inter,sans-serif';
     var bsGreen='padding:3px 9px;border:1px solid var(--green);border-radius:4px;font-size:11px;background:transparent;cursor:pointer;color:var(--green);font-family:Inter,sans-serif;font-weight:600';
