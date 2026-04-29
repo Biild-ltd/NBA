@@ -7,6 +7,7 @@ from app.models.admin import (
     AdminStatsResponse,
     AuditLogEntry,
     AuditLogResponse,
+    EnrollmentUpdateRequest,
     MemberDirectoryResponse,
     AdminMemberSummary,
     StatusUpdateRequest,
@@ -132,6 +133,24 @@ async def update_member_status(
         member_id=member_id,
         new_status=body.status,
         reason=body.reason,
+    )
+    return ProfileResponse(**updated)
+
+
+# ── PATCH /admin/members/{member_id}/enrollment-no ───────────────────────────
+
+@router.patch("/members/{member_id}/enrollment-no", response_model=ProfileResponse)
+async def update_member_enrollment_no(
+    member_id: str,
+    body: EnrollmentUpdateRequest,
+    current_user: dict = Depends(require_admin),
+) -> ProfileResponse:
+    """Update a member's enrollment / SCN number. Validates format, enforces uniqueness,
+    and logs the change to admin_audit_log."""
+    updated = await admin_service.update_enrollment_no(
+        admin_id=current_user["sub"],
+        member_id=member_id,
+        new_enrollment_no=body.enrollment_no,
     )
     return ProfileResponse(**updated)
 
