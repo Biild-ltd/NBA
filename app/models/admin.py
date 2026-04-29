@@ -20,6 +20,11 @@ class AdminMemberSummary(BaseModel):
     profile_url: str
     created_at: datetime
 
+    @field_validator("id", mode="before")
+    @classmethod
+    def coerce_id(cls, v: object) -> str:
+        return str(v)
+
 
 class MemberDirectoryResponse(BaseModel):
     total: int
