@@ -477,6 +477,15 @@ async function startApp(){
   var adminNav=document.getElementById('nav-admin');var mobAdmin=document.getElementById('mob-admin');
   if(adminNav)adminNav.style.display=isAdmin()?'':'none';
   if(mobAdmin)mobAdmin.style.display=isAdmin()?'':'none';
+  if(isAdmin()){
+    ['nav-profile','nav-form','nav-payment','mob-profile','mob-form','mob-payment'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='none';});
+    document.getElementById('topbar-name').textContent='ADMIN';
+    document.getElementById('topbar-av').textContent='A';
+    showPanel('admin',document.getElementById('nav-admin'));
+    renderAdmin();
+    return;
+  }
+  ['nav-profile','nav-form','nav-payment','mob-profile','mob-form','mob-payment'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='';});
   try{
     var res=await fetch(API_URL+'/profiles/me',{headers:authHeader()});
     if(res.status===401){logout();return;}
@@ -495,7 +504,6 @@ async function startApp(){
       showPanel('form',document.getElementById('nav-form'));
     }
   }catch(e){showPanel('form',document.getElementById('nav-form'));}
-  if(isAdmin())renderAdmin();
 }
 async function verifyAndShowProfile(reference){
   showPage('pg-dash');
@@ -529,7 +537,7 @@ async function logout(){
   var rt=localStorage.getItem('nba_refresh');
   if(rt){try{await fetch(API_URL+'/auth/logout',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeader()),body:JSON.stringify({refresh_token:rt})});}catch(e){}}
   localStorage.removeItem('nba_token');localStorage.removeItem('nba_refresh');localStorage.removeItem('nba_user_id');
-  ['nav-form','nav-payment','mob-form','mob-payment'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='';});
+  ['nav-profile','nav-form','nav-payment','mob-profile','mob-form','mob-payment'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='';});
   showPage('pg-auth');
 }
 /* ── Photo upload & AI check (unchanged) ─────────────────────────────────── */
