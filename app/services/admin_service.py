@@ -5,7 +5,9 @@ All DB operations use asyncpg directly.
 import asyncio
 import csv
 import io
+import json
 import logging
+import re
 import secrets
 import string
 
@@ -20,6 +22,7 @@ from app.services import photo_service, qr_service, storage_service
 logger = logging.getLogger(__name__)
 
 _SORT_FIELDS = {"created_at", "full_name", "branch"}
+_ENROLLMENT_RE = re.compile(r"^[A-Za-z0-9/\-]+$")
 
 
 # ── Async public API ───────────────────────────────────────────────────────────
@@ -167,7 +170,6 @@ async def update_status(
                 new_status,
                 member_id,
             )
-            import json
             await conn.execute(
                 """INSERT INTO public.admin_audit_log
                    (admin_id, action, target_id, old_value, new_value)
@@ -194,7 +196,6 @@ async def regenerate_qr(admin_id: str, member_id: str) -> str | None:
 
     url = await qr_service.generate_and_store(member_id)
 
-    import json
     pool = await get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
@@ -208,6 +209,67 @@ async def regenerate_qr(admin_id: str, member_id: str) -> str | None:
         )
 
     return url
+
+
+async def update_enrollment_no(
+    admin_id: str,
+    member_id: str,
+    new_enrollment_no: str,
+) -> dict:
+    """Update a member's enrollment number (SCN). Validates format, checks uniqueness,
+    and logs the change to admin_audit_log.
+
+    Raises:
+        HTTPException 400 — invalid enrollment number format.
+        HTTPException 404 — member not found.
+        HTTPException 409 — enrollment number already in use.
+    """
+    new_enrollment_no = new_enrollment_no.strip().upper()
+    if not _ENROLLMENT_RE.match(new_enrollment_no):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": "Enrollment number may only contain letters, digits, '/' and '-'.",
+                "details": {},
+            },
+        )
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        profile = await conn.fetchrow(
+            "SELECT id, enrollment_no FROM public.member_profiles WHERE id = $1",
+            member_id,
+        )
+        if not profile:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PROFILE_NOT_FOUND")
+
+        old_enrollment_no = profile["enrollment_no"]
+
+        try:
+            async with conn.transaction():
+                updated = await conn.fetchrow(
+                    "UPDATE public.member_profiles SET enrollment_no = $1 WHERE id = $2 RETURNING *",
+                    new_enrollment_no,
+                    member_id,
+                )
+                await conn.execute(
+                    """INSERT INTO public.admin_audit_log
+                       (admin_id, action, target_id, old_value, new_value)
+                       VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)""",
+                    admin_id,
+                    "enrollment_no_change",
+                    member_id,
+                    json.dumps({"enrollment_no": old_enrollment_no}),
+                    json.dumps({"enrollment_no": new_enrollment_no}),
+                )
+        except asyncpg.UniqueViolationError:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="DUPLICATE_ENROLLMENT",
+            )
+
+    return dict(updated)
 
 
 async def get_vcard(member_id: str) -> str:

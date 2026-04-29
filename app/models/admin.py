@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class AdminMemberSummary(BaseModel):
@@ -10,6 +10,9 @@ class AdminMemberSummary(BaseModel):
     branch: str
     year_of_call: int
     enrollment_no: str
+    email_address: str
+    phone_number: str
+    office_address: str
     status: str
     payment_status: str
     photo_url: str | None
@@ -34,6 +37,10 @@ class AdminStatsResponse(BaseModel):
     unpaid_members: int
     latest_member: dict | None          # {"full_name": str, "created_at": str}
     members_by_branch: list[dict]       # [{"branch": str, "count": int}]
+
+
+class EnrollmentUpdateRequest(BaseModel):
+    enrollment_no: str = Field(min_length=2, max_length=50)
 
 
 class StatusUpdateRequest(BaseModel):

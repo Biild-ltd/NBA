@@ -300,12 +300,12 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px"><div><h2 style="font-size:20px;font-weight:700;color:var(--g900)">Member directory</h2><p style="font-size:13px;color:var(--g500);margin-top:2px">All registered NBA ID card members.</p></div><button class="pill-btn" style="width:auto;padding:9px 20px;font-size:13px" onclick="showPanel('form',document.getElementById('nav-form'))">+ New registration</button></div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
         <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:16px 18px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);font-weight:700;margin-bottom:5px">Total members</div><div id="stTotal" style="font-size:28px;font-weight:700;color:var(--g900)">0</div></div>
-        <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:16px 18px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);font-weight:700;margin-bottom:5px">Synced to sheets</div><div id="stSynced" style="font-size:28px;font-weight:700;color:var(--g900)">0</div></div>
+        <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:16px 18px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);font-weight:700;margin-bottom:5px">Active members</div><div id="stActive" style="font-size:28px;font-weight:700;color:var(--g900)">0</div></div>
         <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:16px 18px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);font-weight:700;margin-bottom:5px">Latest member</div><div id="stLatest" style="font-size:14px;font-weight:700;color:var(--g900);padding-top:5px">&#8212;</div></div>
       </div>
       <div style="margin-bottom:12px"><input type="text" id="adminQ" placeholder="Search by name, branch or year&#8230;" oninput="renderAdmin()" style="width:100%;padding:10px 13px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:13px;color:var(--g900);outline:none;background:var(--white)"/></div>
       <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);overflow:hidden;overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:600px"><thead><tr style="background:var(--green)"><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Photo</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Full name</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Branch</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Year</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Enrolment</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">QR</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Actions</th></tr></thead><tbody id="adminBody"></tbody></table>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:900px"><thead><tr style="background:var(--green)"><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Photo</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Full name</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Branch</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Year</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Enrolment / SCN</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Email</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Phone</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Status</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Actions</th></tr></thead><tbody id="adminBody"></tbody></table>
       </div>
     </div>
   </div>
@@ -363,6 +363,19 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
           <div id="pw-msg" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500"></div>
         </div>
       </div>
+    </div>
+  </div>
+  <!-- Admin Edit Enrollment Modal -->
+  <div id="modal-admin-enroll" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:400px;padding:28px 24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h3 style="font-size:17px;font-weight:700;color:#111827;margin:0">Edit Enrollment / SCN Number</h3>
+        <button onclick="closeAdminEnrollModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b7280;line-height:1;padding:0 4px">&times;</button>
+      </div>
+      <div style="font-size:12px;color:var(--g500);margin-bottom:14px">Current value: <strong id="ae-current">&#8212;</strong></div>
+      <div class="af"><label>New enrollment number</label><input type="text" id="ae-enroll" placeholder="e.g. SCN/12345" style="text-transform:uppercase"/></div>
+      <button class="pill-btn" onclick="doAdminEnrollSave()" id="ae-btn" style="margin-top:8px">Save changes</button>
+      <div id="ae-err" style="display:none;margin-top:10px;padding:10px 14px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:500"></div>
     </div>
   </div>
 </div>
@@ -653,22 +666,98 @@ async function renderAdmin(){
   var qs=q?'?q='+encodeURIComponent(q):'';
   var tb=document.getElementById('adminBody');
   try{
-    var res=await fetch(API_URL+'/admin/members'+qs,{headers:authHeader()});
-    if(!res.ok){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--g400)">Could not load members.</td></tr>';return;}
-    var data=await res.json();
+    var [membersRes,statsRes]=await Promise.all([
+      fetch(API_URL+'/admin/members'+qs,{headers:authHeader()}),
+      fetch(API_URL+'/admin/stats',{headers:authHeader()}),
+    ]);
+    if(!membersRes.ok){tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--g400)">Could not load members.</td></tr>';return;}
+    var data=await membersRes.json();
     var members=data.members||[];
     document.getElementById('stTotal').textContent=data.total||members.length;
-    document.getElementById('stSynced').textContent=data.total||members.length;
+    if(statsRes.ok){var sd=await statsRes.json();document.getElementById('stActive').textContent=sd.active_members||0;}
     document.getElementById('stLatest').textContent=members[0]?members[0].full_name.split(' ').slice(0,2).join(' '):'\u2014';
-    if(!members.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--g400)">No members found.</td></tr>';return;}
+    if(!members.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--g400)">No members found.</td></tr>';return;}
     var bs='padding:3px 9px;border:1px solid #e5e7eb;border-radius:4px;font-size:11px;background:transparent;cursor:pointer;color:#374151;font-family:Inter,sans-serif';
+    var bsGreen='padding:3px 9px;border:1px solid var(--green);border-radius:4px;font-size:11px;background:transparent;cursor:pointer;color:var(--green);font-family:Inter,sans-serif;font-weight:600';
     tb.innerHTML=members.map(function(m){
       var ph=m.photo_url?'<img style="width:36px;height:44px;object-fit:cover;border:2px solid #3a9e4f;border-radius:4px" src="'+m.photo_url+'" alt="'+m.full_name+'">':"<div style='width:36px;height:44px;background:#e8f5e9;border:2px solid #e5e7eb;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px'>&#128100;</div>";
-      var qrImg=m.qr_code_url?'<img style="width:36px;height:36px;border-radius:4px;border:1px solid #e5e7eb" src="'+m.qr_code_url+'" alt="QR">':'\u2014';
       var mid=m.member_uid||'';var pid=m.id||'';var purl=m.profile_url||'';
-      return '<tr style="border-bottom:1px solid #f3f4f6"><td style="padding:10px 13px;vertical-align:middle">'+ph+'</td><td style="padding:10px 13px;vertical-align:middle"><strong>'+m.full_name+'</strong></td><td style="padding:10px 13px;vertical-align:middle">'+(m.branch||'\u2014')+'</td><td style="padding:10px 13px;vertical-align:middle">'+m.year_of_call+'</td><td style="padding:10px 13px;vertical-align:middle;font-size:11px;color:#9ca3af">'+(m.enrollment_no||'\u2014')+'</td><td style="padding:10px 13px;vertical-align:middle">'+qrImg+'</td><td style="padding:10px 13px;vertical-align:middle"><div style="display:flex;gap:5px"><button style="'+bs+'" onclick="window.open(\''+purl+'\',\'_blank\')">Profile</button><button style="'+bs+'" onclick="window.open(API_URL+\'/qr/'+mid+'/download\',\'_blank\')">QR</button><button style="'+bs+'" onclick="window.location.href=API_URL+\'/admin/members/'+pid+'/vcard\'">Contact</button></div></td></tr>';
+      var enroll=m.enrollment_no||'\u2014';
+      var email=m.email_address||'';var emailTrunc=email.length>24?email.slice(0,22)+'\u2026':email;
+      var phone=m.phone_number||'\u2014';
+      var statusColors={active:{bg:'#dcfce7',color:'#166534'},pending:{bg:'#fef9c3',color:'#854d0e'},suspended:{bg:'#fee2e2',color:'#991b1b'}};
+      var sc=statusColors[m.status]||{bg:'#f3f4f6',color:'#374151'};
+      var statusBadge='<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:'+sc.bg+';color:'+sc.color+'">'+m.status+'</span>';
+      var payColors={paid:{bg:'#dcfce7',color:'#166534'},unpaid:{bg:'#f3f4f6',color:'#6b7280'},refunded:{bg:'#e0f2fe',color:'#0369a1'}};
+      var pc=payColors[m.payment_status]||{bg:'#f3f4f6',color:'#374151'};
+      var payBadge='<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:'+pc.bg+';color:'+pc.color+'">'+m.payment_status+'</span>';
+      var safeEnroll=enroll.replace(/'/g,"\\'");
+      return '<tr style="border-bottom:1px solid #f3f4f6">'
+        +'<td style="padding:10px 13px;vertical-align:middle">'+ph+'</td>'
+        +'<td style="padding:10px 13px;vertical-align:middle"><strong>'+m.full_name+'</strong><div style="font-size:11px;color:#9ca3af;margin-top:2px">'+mid+'</div></td>'
+        +'<td style="padding:10px 13px;vertical-align:middle">'+(m.branch||'\u2014')+'</td>'
+        +'<td style="padding:10px 13px;vertical-align:middle">'+m.year_of_call+'</td>'
+        +'<td style="padding:10px 13px;vertical-align:middle;font-size:11px;color:#374151">'+enroll+'</td>'
+        +'<td style="padding:10px 13px;vertical-align:middle;font-size:11px;color:#374151"><a href="mailto:'+email+'" style="color:#374151;text-decoration:none">'+emailTrunc+'</a></td>'
+        +'<td style="padding:10px 13px;vertical-align:middle;font-size:11px;color:#374151">'+phone+'</td>'
+        +'<td style="padding:10px 13px;vertical-align:middle">'+statusBadge+'<div style="margin-top:3px">'+payBadge+'</div></td>'
+        +'<td style="padding:10px 13px;vertical-align:middle"><div style="display:flex;flex-wrap:wrap;gap:4px">'
+          +'<button style="'+bs+'" onclick="window.open(\''+purl+'\',\'_blank\')">Profile</button>'
+          +'<button style="'+bs+'" onclick="window.open(API_URL+\'/qr/'+mid+'/download\',\'_blank\')">QR \u2193</button>'
+          +'<button style="'+bsGreen+'" onclick="adminRegenQR(\''+pid+'\',this)">Regen QR</button>'
+          +'<button style="'+bs+'" onclick="adminEditEnrollment(\''+pid+'\',\''+safeEnroll+'\')">Edit SCN</button>'
+          +'</div></td>'
+        +'</tr>';
     }).join('');
-  }catch(e){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--g400)">Error loading members.</td></tr>';}
+  }catch(e){tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--g400)">Error loading members.</td></tr>';}
+}
+async function adminRegenQR(memberId,btn){
+  if(btn){btn.disabled=true;btn.textContent='...';}
+  try{
+    var res=await fetch(API_URL+'/admin/members/'+memberId+'/regenerate-qr',{method:'POST',headers:authHeader()});
+    var data=await res.json();
+    if(res.ok){await renderAdmin();}
+    else{alert((data.error&&data.error.message)||'Failed to regenerate QR. Please try again.');}
+  }catch(e){alert('Network error. Please try again.');}
+  if(btn){btn.disabled=false;btn.textContent='Regen QR';}
+}
+var _adminEditMemberId=null;
+function adminEditEnrollment(memberId,currentEnrollment){
+  _adminEditMemberId=memberId;
+  document.getElementById('ae-current').textContent=currentEnrollment||'\u2014';
+  document.getElementById('ae-enroll').value=currentEnrollment||'';
+  document.getElementById('ae-err').style.display='none';
+  document.getElementById('ae-err').textContent='';
+  document.getElementById('modal-admin-enroll').style.display='flex';
+}
+function closeAdminEnrollModal(){
+  document.getElementById('modal-admin-enroll').style.display='none';
+  _adminEditMemberId=null;
+}
+async function doAdminEnrollSave(){
+  var btn=document.getElementById('ae-btn');
+  var errEl=document.getElementById('ae-err');
+  var val=document.getElementById('ae-enroll').value.trim().toUpperCase();
+  errEl.style.display='none';
+  if(!val){errEl.textContent='Please enter an enrollment number.';errEl.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Saving\u2026';
+  try{
+    var res=await fetch(API_URL+'/admin/members/'+_adminEditMemberId+'/enrollment-no',{
+      method:'PATCH',
+      headers:Object.assign({'Content-Type':'application/json'},authHeader()),
+      body:JSON.stringify({enrollment_no:val}),
+    });
+    var data=await res.json();
+    if(res.ok){
+      closeAdminEnrollModal();
+      await renderAdmin();
+    }else{
+      var msg=(data.error&&data.error.message)||'Could not update enrollment number. Please try again.';
+      if(data.error&&data.error.code==='DUPLICATE_ENROLLMENT')msg='This enrollment number is already registered to another member.';
+      errEl.textContent=msg;errEl.style.display='block';
+    }
+  }catch(e){errEl.textContent='Network error. Please try again.';errEl.style.display='block';}
+  btn.disabled=false;btn.textContent='Save changes';
 }
 /* ── Update profile modal ────────────────────────────────────────────────── */
 function showUpdateModal(){
