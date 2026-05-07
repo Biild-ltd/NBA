@@ -4,6 +4,7 @@ from pydantic import ValidationError
 
 from app.dependencies import require_admin
 from app.models.admin import (
+    AdminProfileUpdateRequest,
     AdminStatsResponse,
     AuditLogEntry,
     AuditLogResponse,
@@ -153,6 +154,37 @@ async def update_member_enrollment_no(
         new_enrollment_no=body.enrollment_no,
     )
     return ProfileResponse(**updated)
+
+
+# ── PATCH /admin/members/{member_id} ─────────────────────────────────────────
+
+@router.patch("/members/{member_id}", response_model=ProfileResponse)
+async def update_member_profile(
+    member_id: str,
+    body: AdminProfileUpdateRequest,
+    current_user: dict = Depends(require_admin),
+) -> ProfileResponse:
+    """Update any combination of a member's profile fields. Logs to admin_audit_log."""
+    updated = await admin_service.update_profile(
+        admin_id=current_user["sub"],
+        member_id=member_id,
+        updates=body.model_dump(exclude_none=True),
+    )
+    return ProfileResponse(**updated)
+
+
+# ── DELETE /admin/members/{member_id} ────────────────────────────────────────
+
+@router.delete("/members/{member_id}", status_code=204)
+async def delete_member(
+    member_id: str,
+    current_user: dict = Depends(require_admin),
+) -> None:
+    """Permanently delete a member profile. Auth account is left intact. Logs to admin_audit_log."""
+    await admin_service.delete_member(
+        admin_id=current_user["sub"],
+        member_id=member_id,
+    )
 
 
 # ── GET /admin/members/{member_id}/vcard ─────────────────────────────────────

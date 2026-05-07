@@ -60,6 +60,31 @@ class StatusUpdateRequest(BaseModel):
         return v
 
 
+class AdminProfileUpdateRequest(BaseModel):
+    full_name: str | None = Field(default=None, min_length=2, max_length=150)
+    year_of_call: int | None = Field(default=None, ge=1900)
+    branch: str | None = None
+    phone_number: str | None = None
+    email_address: str | None = None
+    office_address: str | None = Field(default=None, min_length=5, max_length=500)
+    status: str | None = None
+    payment_status: str | None = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str | None) -> str | None:
+        if v is not None and v not in {"active", "suspended", "pending"}:
+            raise ValueError("status must be active, suspended, or pending")
+        return v
+
+    @field_validator("payment_status")
+    @classmethod
+    def validate_payment_status(cls, v: str | None) -> str | None:
+        if v is not None and v not in {"paid", "unpaid"}:
+            raise ValueError("payment_status must be paid or unpaid")
+        return v
+
+
 class AuditLogEntry(BaseModel):
     id: str
     admin_id: str
