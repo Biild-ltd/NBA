@@ -385,6 +385,46 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
       <div id="ae-err" style="display:none;margin-top:10px;padding:10px 14px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:500"></div>
     </div>
   </div>
+  <!-- Admin Edit Profile Modal -->
+  <div id="modal-admin-edit" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:28px 24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h3 style="font-size:17px;font-weight:700;color:#111827;margin:0">Edit Member Profile</h3>
+        <button onclick="closeAdminEditModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b7280;line-height:1;padding:0 4px">&times;</button>
+      </div>
+      <div class="af"><label>Full name</label><input type="text" id="adm-name" placeholder="Full legal name"/></div>
+      <div class="af"><label>Year of call</label><input type="number" id="adm-year" placeholder="e.g. 2019" min="1900"/></div>
+      <div class="af"><label>Branch</label><select id="adm-branch" style="width:100%;padding:10px 13px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:14px;color:var(--g900);background:var(--white);outline:none"><option value="">— select branch —</option><option value="Aba">Aba</option><option value="Abakaliki">Abakaliki</option><option value="Abeokuta">Abeokuta</option><option value="Abuja">Abuja</option><option value="Ado-Ekiti">Ado-Ekiti</option><option value="Afikpo">Afikpo</option><option value="Agbor">Agbor</option><option value="Aguata">Aguata</option><option value="Ahoada">Ahoada</option><option value="Akure">Akure</option><option value="Anaocha">Anaocha</option><option value="Ankpa">Ankpa</option><option value="Asaba">Asaba</option><option value="Auchi">Auchi</option><option value="Awka">Awka</option><option value="Badagry">Badagry</option><option value="Barnawa">Barnawa</option><option value="Bauchi">Bauchi</option><option value="Bende">Bende</option><option value="Benin">Benin</option><option value="BirninKebbi">BirninKebbi</option><option value="Biu">Biu</option><option value="Bori">Bori</option><option value="Bukuru">Bukuru</option><option value="Bwari">Bwari</option><option value="Calabar">Calabar</option><option value="Damaturu">Damaturu</option><option value="Degema">Degema</option><option value="Dutse">Dutse</option><option value="Effurun">Effurun</option><option value="Eket">Eket</option><option value="Ekpoma">Ekpoma</option><option value="Enugu">Enugu</option><option value="Epe">Epe</option><option value="Eti-Osa">Eti-Osa</option><option value="Ezeagu">Ezeagu</option><option value="Funtua">Funtua</option><option value="Garki">Garki</option><option value="Gboko">Gboko</option><option value="Gombe">Gombe</option><option value="Gusau">Gusau</option><option value="Gwagwalada">Gwagwalada</option><option value="Ibadan">Ibadan</option><option value="Idah">Idah</option><option value="Idemili">Idemili</option><option value="Igarra">Igarra</option><option value="Ihiala">Ihiala</option><option value="Ijebu-Ode">Ijebu-Ode</option><option value="IkareAkoko">IkareAkoko</option><option value="Ikeja">Ikeja</option><option value="IkereEkiti">IkereEkiti</option><option value="Ikirun">Ikirun</option><option value="IkoleEkiti">IkoleEkiti</option><option value="Ikom">Ikom</option><option value="Ikorodu">Ikorodu</option><option value="IkotEkpene">IkotEkpene</option><option value="Ilaro">Ilaro</option><option value="Ile-Ife">Ile-Ife</option><option value="Ilesa">Ilesa</option><option value="Ilorin">Ilorin</option><option value="IsialaNgwa">IsialaNgwa</option><option value="Isiokpo">Isiokpo</option><option value="Iwo">Iwo</option><option value="Jalingo">Jalingo</option><option value="Jos">Jos</option><option value="Kabba">Kabba</option><option value="Kaduna">Kaduna</option><option value="Kafanchan">Kafanchan</option><option value="Kano">Kano</option><option value="Katagum">Katagum</option><option value="Katsina">Katsina</option><option value="Keffi">Keffi</option><option value="Kwale">Kwale</option><option value="Lafia">Lafia</option><option value="Lagos">Lagos</option><option value="Lokoja">Lokoja</option><option value="Maiduguri">Maiduguri</option><option value="Makurdi">Makurdi</option><option value="Mbaise">Mbaise</option><option value="MbanoEtiti">MbanoEtiti</option><option value="Minna">Minna</option><option value="Mubi">Mubi</option><option value="Nike">Nike</option><option value="Nnewi">Nnewi</option><option value="Nsukka">Nsukka</option><option value="Nyanya-Karu">Nyanya-Karu</option><option value="ObolloAfor">ObolloAfor</option><option value="Offa">Offa</option><option value="Ogoja">Ogoja</option><option value="Ogomosho">Ogomosho</option><option value="Ogwashi-Uku">Ogwashi-Uku</option><option value="Ohafia">Ohafia</option><option value="OjiRiver">OjiRiver</option><option value="Okehi">Okehi</option><option value="Okene">Okene</option><option value="Okigwe">Okigwe</option><option value="Okirika">Okirika</option><option value="Okitipupa">Okitipupa</option><option value="Oleh">Oleh</option><option value="Omoku">Omoku</option><option value="Ondo">Ondo</option><option value="Onitsha">Onitsha</option><option value="Onueke">Onueke</option><option value="Orlu">Orlu</option><option value="Oron">Oron</option><option value="Oru">Oru</option><option value="Oru/Oguta">Oru/Oguta</option><option value="Osogbo">Osogbo</option><option value="Ota">Ota</option><option value="Otukpo">Otukpo</option><option value="Otuocha">Otuocha</option><option value="Owerri">Owerri</option><option value="Owo">Owo</option><option value="Oyigbo">Oyigbo</option><option value="Oyo">Oyo</option><option value="Pankshin">Pankshin</option><option value="PortHarcourt">PortHarcourt</option><option value="Potiskum">Potiskum</option><option value="Sagamu">Sagamu</option><option value="Sagbama">Sagbama</option><option value="Saki">Saki</option><option value="Sapele">Sapele</option><option value="Shendam">Shendam</option><option value="Sokoto">Sokoto</option><option value="Suleja">Suleja</option><option value="Surulere">Surulere</option><option value="Udi">Udi</option><option value="Udu">Udu</option><option value="Ughelli">Ughelli</option><option value="Ukwa">Ukwa</option><option value="Umuahia">Umuahia</option><option value="Ungogo">Ungogo</option><option value="Uromi">Uromi</option><option value="Uyo">Uyo</option><option value="Warri">Warri</option><option value="Wukari">Wukari</option><option value="Yenagoa">Yenagoa</option><option value="Yola">Yola</option><option value="Zaria">Zaria</option></select></div>
+      <div class="af"><label>Phone number</label>
+        <div style="display:flex;align-items:center;border:1.5px solid var(--g200);border-radius:var(--r);overflow:hidden;box-sizing:border-box;width:100%">
+          <span style="padding:10px;font-size:14px;color:#6b7280;border-right:1.5px solid var(--g200);background:#f9fafb;white-space:nowrap">+234</span>
+          <input type="tel" id="adm-phone" placeholder="8012345678" style="border:none;outline:none;flex:1;padding:10px 13px;font-size:14px;font-family:Inter,sans-serif;min-width:0"/>
+        </div>
+      </div>
+      <div class="af"><label>Email address</label><input type="email" id="adm-email" placeholder="your@email.com"/></div>
+      <div class="af"><label>Office / chambers address</label><textarea id="adm-address" rows="3" placeholder="Full office address"></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <div class="af" style="margin-bottom:0"><label>Status</label><select id="adm-status" style="width:100%;padding:10px 13px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:14px;color:var(--g900);background:var(--white);outline:none"><option value="active">Active</option><option value="pending">Pending</option><option value="suspended">Suspended</option></select></div>
+        <div class="af" style="margin-bottom:0"><label>Payment status</label><select id="adm-payment" style="width:100%;padding:10px 13px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:14px;color:var(--g900);background:var(--white);outline:none"><option value="paid">Paid</option><option value="unpaid">Unpaid</option></select></div>
+      </div>
+      <button class="pill-btn" onclick="doAdminEditSave()" id="adm-btn" style="margin-top:4px">Save changes</button>
+      <div id="adm-err" style="display:none;margin-top:10px;padding:10px 14px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:500"></div>
+    </div>
+  </div>
+  <!-- Admin Delete Confirm Modal -->
+  <div id="modal-admin-delete" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:400px;padding:28px 24px">
+      <h3 style="font-size:17px;font-weight:700;color:#111827;margin:0 0 10px">Delete member profile?</h3>
+      <p style="font-size:13px;color:var(--g500);margin:0 0 6px">You are about to permanently delete the profile for:</p>
+      <p id="adm-del-name" style="font-size:14px;font-weight:700;color:#111827;margin:0 0 16px"></p>
+      <p style="font-size:12px;color:#dc2626;margin:0 0 20px">This cannot be undone. The auth account will remain intact.</p>
+      <div style="display:flex;gap:10px">
+        <button onclick="closeAdminDeleteModal()" style="flex:1;padding:10px;border:1.5px solid var(--g200);border-radius:var(--r);background:var(--white);cursor:pointer;font-size:14px;font-family:'Inter',sans-serif;color:var(--g700)">Cancel</button>
+        <button id="adm-del-btn" onclick="doAdminDeleteConfirm()" style="flex:1;padding:10px;border:none;border-radius:var(--r);background:#dc2626;cursor:pointer;font-size:14px;font-family:'Inter',sans-serif;color:#fff;font-weight:600">Delete</button>
+      </div>
+      <div id="adm-del-err" style="display:none;margin-top:10px;padding:10px 14px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:500"></div>
+    </div>
+  </div>
 </div>
 <!-- Reset Password Page -->
 <div id="pg-reset" class="page">
@@ -715,6 +755,8 @@ async function renderAdmin(){
     if(!members.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--g400)">No members found.</td></tr>';return;}
     var bs='padding:3px 9px;border:1px solid #e5e7eb;border-radius:4px;font-size:11px;background:transparent;cursor:pointer;color:#374151;font-family:Inter,sans-serif';
     var bsGreen='padding:3px 9px;border:1px solid var(--green);border-radius:4px;font-size:11px;background:transparent;cursor:pointer;color:var(--green);font-family:Inter,sans-serif;font-weight:600';
+    var bsRed='padding:3px 9px;border:1px solid #dc2626;border-radius:4px;font-size:11px;background:transparent;cursor:pointer;color:#dc2626;font-family:Inter,sans-serif;font-weight:600';
+    _adminMemberCache={};members.forEach(function(m){_adminMemberCache[m.id]=m;});
     tb.innerHTML=members.map(function(m){
       var ph=m.photo_url?'<img style="width:36px;height:44px;object-fit:cover;border:2px solid #3a9e4f;border-radius:4px" src="'+m.photo_url+'" alt="'+m.full_name+'">':"<div style='width:36px;height:44px;background:#e8f5e9;border:2px solid #e5e7eb;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px'>&#128100;</div>";
       var mid=m.member_uid||'';var pid=m.id||'';var purl=m.profile_url||'';
@@ -742,6 +784,8 @@ async function renderAdmin(){
           +'<button style="'+bs+'" onclick="window.open(API_URL+\'/qr/'+mid+'/download\',\'_blank\')">QR \u2193</button>'
           +'<button style="'+bsGreen+'" onclick="adminRegenQR(\''+pid+'\',this)">Regen QR</button>'
           +'<button style="'+bs+'" onclick="adminEditEnrollment(\''+pid+'\',\''+safeEnroll+'\')">Edit SCN</button>'
+          +'<button style="'+bsGreen+'" onclick="adminEditProfile(\''+pid+'\')">Edit</button>'
+          +'<button style="'+bsRed+'" onclick="adminDeleteProfile(\''+pid+'\')">Delete</button>'
           +'</div></td>'
         +'</tr>';
     }).join('');
@@ -794,6 +838,82 @@ async function doAdminEnrollSave(){
     }
   }catch(e){errEl.textContent='Network error. Please try again.';errEl.style.display='block';}
   btn.disabled=false;btn.textContent='Save changes';
+}
+/* ── Admin Edit Profile modal ────────────────────────────────────────────── */
+var _adminMemberCache={};
+var _adminEditMemberIdFull=null;
+function adminEditProfile(memberId){
+  var m=_adminMemberCache[memberId];if(!m)return;
+  _adminEditMemberIdFull=memberId;
+  document.getElementById('adm-name').value=m.full_name||'';
+  document.getElementById('adm-year').value=m.year_of_call||'';
+  document.getElementById('adm-branch').value=m.branch||'';
+  var ph=m.phone_number||'';if(ph.startsWith('0'))ph=ph.slice(1);
+  document.getElementById('adm-phone').value=ph;
+  document.getElementById('adm-email').value=m.email_address||'';
+  document.getElementById('adm-address').value=m.office_address||'';
+  document.getElementById('adm-status').value=m.status||'active';
+  document.getElementById('adm-payment').value=m.payment_status||'unpaid';
+  document.getElementById('adm-err').style.display='none';
+  document.getElementById('modal-admin-edit').style.display='flex';
+}
+function closeAdminEditModal(){
+  document.getElementById('modal-admin-edit').style.display='none';
+  _adminEditMemberIdFull=null;
+}
+async function doAdminEditSave(){
+  var btn=document.getElementById('adm-btn');
+  var errEl=document.getElementById('adm-err');
+  errEl.style.display='none';
+  var phone=document.getElementById('adm-phone').value.trim();
+  if(phone&&!phone.startsWith('0'))phone='0'+phone;
+  var body={};
+  var name=document.getElementById('adm-name').value.trim();if(name)body.full_name=name;
+  var year=parseInt(document.getElementById('adm-year').value);if(!isNaN(year))body.year_of_call=year;
+  var branch=document.getElementById('adm-branch').value;if(branch)body.branch=branch;
+  if(phone)body.phone_number=phone;
+  var email=document.getElementById('adm-email').value.trim();if(email)body.email_address=email;
+  var addr=document.getElementById('adm-address').value.trim();if(addr)body.office_address=addr;
+  body.status=document.getElementById('adm-status').value;
+  body.payment_status=document.getElementById('adm-payment').value;
+  if(!Object.keys(body).length){errEl.textContent='No changes to save.';errEl.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Saving\u2026';
+  try{
+    var res=await fetch(API_URL+'/admin/members/'+_adminEditMemberIdFull,{
+      method:'PATCH',
+      headers:Object.assign({'Content-Type':'application/json'},authHeader()),
+      body:JSON.stringify(body),
+    });
+    var data=await res.json();
+    if(res.ok){closeAdminEditModal();await renderAdmin();}
+    else{errEl.textContent=(data.error&&data.error.message)||'Could not save changes. Please try again.';errEl.style.display='block';}
+  }catch(e){errEl.textContent='Network error. Please try again.';errEl.style.display='block';}
+  btn.disabled=false;btn.textContent='Save changes';
+}
+/* ── Admin Delete modal ──────────────────────────────────────────────────── */
+var _adminDelMemberId=null;
+function adminDeleteProfile(memberId){
+  var m=_adminMemberCache[memberId];if(!m)return;
+  _adminDelMemberId=memberId;
+  document.getElementById('adm-del-name').textContent=m.full_name;
+  document.getElementById('adm-del-err').style.display='none';
+  document.getElementById('modal-admin-delete').style.display='flex';
+}
+function closeAdminDeleteModal(){
+  document.getElementById('modal-admin-delete').style.display='none';
+  _adminDelMemberId=null;
+}
+async function doAdminDeleteConfirm(){
+  var btn=document.getElementById('adm-del-btn');
+  var errEl=document.getElementById('adm-del-err');
+  errEl.style.display='none';
+  btn.disabled=true;btn.textContent='Deleting\u2026';
+  try{
+    var res=await fetch(API_URL+'/admin/members/'+_adminDelMemberId,{method:'DELETE',headers:authHeader()});
+    if(res.ok||res.status===204){closeAdminDeleteModal();await renderAdmin();}
+    else{var data=await res.json();errEl.textContent=(data.error&&data.error.message)||'Could not delete profile. Please try again.';errEl.style.display='block';}
+  }catch(e){errEl.textContent='Network error. Please try again.';errEl.style.display='block';}
+  btn.disabled=false;btn.textContent='Delete';
 }
 /* ── Update profile modal ────────────────────────────────────────────────── */
 function showUpdateModal(){
