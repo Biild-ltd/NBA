@@ -524,3 +524,51 @@ def _format_csv(members: list[dict]) -> str:
     writer.writeheader()
     writer.writerows(members)
     return buf.getvalue()
+
+
+def _format_sheets_csv(members: list[dict]) -> str:
+    """CSV with =IMAGE() formulas for QR/photo columns — import directly into Google Sheets."""
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Full Name", "Year of Call", "Branch", "QR Code", "Passport Photo"])
+    for m in members:
+        qr = f'=IMAGE("{m["qr_code_url"]}")' if m.get("qr_code_url") else ""
+        photo = f'=IMAGE("{m["photo_url"]}")' if m.get("photo_url") else ""
+        writer.writerow([
+            m.get("full_name", ""),
+            m.get("year_of_call", ""),
+            m.get("branch", ""),
+            qr,
+            photo,
+        ])
+    return buf.getvalue()
+
+
+async def export_sheets_csv(
+    status_filter: str | None = None,
+    branch: str | None = None,
+) -> str:
+    conditions: list[str] = []
+    params: list = []
+    idx = 1
+
+    if status_filter:
+        conditions.append(f"status = ${idx}")
+        params.append(status_filter)
+        idx += 1
+    if branch:
+        conditions.append(f"branch = ${idx}")
+        params.append(branch)
+        idx += 1
+
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            f"SELECT full_name, year_of_call, branch, qr_code_url, photo_url "
+            f"FROM public.member_profiles {where} ORDER BY created_at DESC",
+            *params,
+        )
+
+    return _format_sheets_csv([dict(r) for r in rows])

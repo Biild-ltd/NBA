@@ -297,7 +297,12 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
       </div>
     </div>
     <div class="panel" id="panel-admin">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px"><div><h2 style="font-size:20px;font-weight:700;color:var(--g900)">Member directory</h2><p style="font-size:13px;color:var(--g500);margin-top:2px">All registered NBA ID card members.</p></div><button class="pill-btn" style="width:auto;padding:9px 20px;font-size:13px" onclick="showPanel('form',document.getElementById('nav-form'))">+ New registration</button></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px"><div><h2 style="font-size:20px;font-weight:700;color:var(--g900)">Member directory</h2><p style="font-size:13px;color:var(--g500);margin-top:2px">All registered NBA ID card members.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="pill-btn" style="width:auto;padding:9px 20px;font-size:13px;background:#fff;color:var(--green);border:1.5px solid var(--green)" id="exportSheetsBtn" onclick="adminExportSheets(this)">&#8659; Export to Sheets</button><button class="pill-btn" style="width:auto;padding:9px 20px;font-size:13px" onclick="showPanel('form',document.getElementById('nav-form'))">+ New registration</button></div></div>
+      <!-- Sheets export toast -->
+      <div id="sheets-toast" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:14px;font-size:13px;color:#166534">
+        <strong>File downloaded!</strong> To view images: open <a href="https://sheets.new" target="_blank" style="color:var(--green);font-weight:600">sheets.new</a> &rarr; File &rarr; Import &rarr; Upload the downloaded file &rarr; choose <em>"Replace spreadsheet"</em>. Images will render automatically in the QR Code and Photo columns.
+        <button onclick="document.getElementById('sheets-toast').style.display='none'" style="float:right;background:none;border:none;cursor:pointer;font-size:16px;color:#166534;line-height:1;padding:0 2px">&times;</button>
+      </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
         <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:16px 18px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);font-weight:700;margin-bottom:5px">Total members</div><div id="stTotal" style="font-size:28px;font-weight:700;color:var(--g900)">0</div></div>
         <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:16px 18px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);font-weight:700;margin-bottom:5px">Active members</div><div id="stActive" style="font-size:28px;font-weight:700;color:var(--g900)">0</div></div>
@@ -838,6 +843,20 @@ async function doAdminEnrollSave(){
     }
   }catch(e){errEl.textContent='Network error. Please try again.';errEl.style.display='block';}
   btn.disabled=false;btn.textContent='Save changes';
+}
+/* ── Admin export to Google Sheets ──────────────────────────────────────── */
+async function adminExportSheets(btn){
+  btn.disabled=true;btn.textContent='Downloading\u2026';
+  try{
+    var res=await fetch(API_URL+'/admin/export/sheets',{headers:authHeader()});
+    if(!res.ok){alert('Export failed. Please try again.');return;}
+    var blob=await res.blob();
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download='members_sheets.csv';document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1000);
+    var toast=document.getElementById('sheets-toast');if(toast)toast.style.display='block';
+  }catch(e){alert('Network error. Please try again.');}
+  btn.disabled=false;btn.textContent='\u21D3 Export to Sheets';
 }
 /* ── Admin Edit Profile modal ────────────────────────────────────────────── */
 var _adminMemberCache={};
