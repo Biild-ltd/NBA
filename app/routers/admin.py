@@ -242,6 +242,26 @@ async def export_members(
     )
 
 
+# ── GET /admin/export/sheets ──────────────────────────────────────────────────
+
+@router.get("/export/sheets", response_class=Response)
+async def export_members_for_sheets(
+    status: str | None = None,
+    branch: str | None = None,
+    current_user: dict = Depends(require_admin),
+) -> Response:
+    """CSV with =IMAGE() formulas for QR/photo — import into Google Sheets to render images."""
+    csv_str = await admin_service.export_sheets_csv(
+        status_filter=status,
+        branch=branch,
+    )
+    return Response(
+        content=csv_str,
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="members_sheets.csv"'},
+    )
+
+
 # ── GET /admin/audit-log ──────────────────────────────────────────────────────
 
 @router.get("/audit-log", response_model=AuditLogResponse)
