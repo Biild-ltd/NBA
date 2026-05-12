@@ -248,12 +248,14 @@ async def export_members(
 async def export_members_for_sheets(
     status: str | None = None,
     branch: str | None = None,
+    limit: int | None = None,
     current_user: dict = Depends(require_admin),
 ) -> Response:
     """CSV with =IMAGE() formulas for QR/photo — import into Google Sheets to render images."""
     csv_str = await admin_service.export_sheets_csv(
         status_filter=status,
         branch=branch,
+        limit=limit,
     )
     return Response(
         content=csv_str,

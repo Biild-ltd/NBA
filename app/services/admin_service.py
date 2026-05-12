@@ -547,6 +547,7 @@ def _format_sheets_csv(members: list[dict]) -> str:
 async def export_sheets_csv(
     status_filter: str | None = None,
     branch: str | None = None,
+    limit: int | None = None,
 ) -> str:
     conditions: list[str] = []
     params: list = []
@@ -562,12 +563,16 @@ async def export_sheets_csv(
         idx += 1
 
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    limit_clause = ""
+    if limit is not None and limit > 0:
+        limit_clause = f" LIMIT ${idx}"
+        params.append(min(limit, 5000))
 
     pool = await get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             f"SELECT full_name, year_of_call, branch, qr_code_url, photo_url "
-            f"FROM public.member_profiles {where} ORDER BY created_at DESC",
+            f"FROM public.member_profiles {where} ORDER BY created_at DESC{limit_clause}",
             *params,
         )
 
