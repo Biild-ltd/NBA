@@ -219,8 +219,8 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
         <div class="auth-h">Create your account</div>
         <div class="auth-p">Enter your details to begin your NBA ID card application.</div>
         <div class="af"><label>Email address</label><input type="text" id="auth-email" placeholder="e.g. adaeze@lawfirm.ng"/></div>
-        <div class="af"><label>Password</label><input type="password" id="signup-password" placeholder="Create a password"/></div>
-        <div class="af"><label>Confirm password</label><input type="password" id="signup-confirm" placeholder="Repeat your password"/></div>
+        <div class="af"><label>Password</label><div style="position:relative"><input type="password" id="signup-password" placeholder="Create a password" style="padding-right:42px"/><button type="button" onclick="togglePwVis('signup-password',this)" tabindex="-1" title="Show/hide password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:2px;color:var(--g400);line-height:0">&#128065;</button></div></div>
+        <div class="af"><label>Confirm password</label><div style="position:relative"><input type="password" id="signup-confirm" placeholder="Repeat your password" style="padding-right:42px"/><button type="button" onclick="togglePwVis('signup-confirm',this)" tabindex="-1" title="Show/hide password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:2px;color:var(--g400);line-height:0">&#128065;</button></div></div>
         <button class="pill-btn" onclick="doSignup()">Create account &amp; apply &#8594;</button>
         <div class="auth-foot">Already have an account? <span onclick="switchTab('login',document.querySelectorAll('.auth-tab')[1])">Log in</span></div>
       </div>
@@ -228,7 +228,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
         <div class="auth-h">Welcome back</div>
         <div class="auth-p">Log in to continue your application or view your profile.</div>
         <div class="af"><label>Email address</label><input type="text" id="login-email" placeholder="e.g. adaeze@lawfirm.ng"/></div>
-        <div class="af"><label>Password</label><input type="password" id="login-password" placeholder="Your password"/></div>
+        <div class="af"><label>Password</label><div style="position:relative"><input type="password" id="login-password" placeholder="Your password" style="padding-right:42px"/><button type="button" onclick="togglePwVis('login-password',this)" tabindex="-1" title="Show/hide password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:2px;color:var(--g400);line-height:0">&#128065;</button></div></div>
         <button class="pill-btn" onclick="doLogin()">Log in &#8594;</button>
         <div class="auth-foot">No account? <span onclick="switchTab('signup',document.querySelectorAll('.auth-tab')[0])">Sign up</span> &nbsp;&middot;&nbsp; <span onclick="showForgotForm()">Forgot password?</span></div>
       </div>
@@ -297,7 +297,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
       </div>
     </div>
     <div class="panel" id="panel-admin">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px"><div><h2 style="font-size:20px;font-weight:700;color:var(--g900)">Member directory</h2><p style="font-size:13px;color:var(--g500);margin-top:2px">All registered NBA ID card members.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="pill-btn" style="width:auto;padding:9px 20px;font-size:13px;background:#fff;color:var(--green);border:1.5px solid var(--green)" id="exportSheetsBtn" onclick="adminExportSheets(this)">&#8659; Export to Sheets</button><button class="pill-btn" style="width:auto;padding:9px 20px;font-size:13px" onclick="showPanel('form',document.getElementById('nav-form'))">+ New registration</button></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px"><div><h2 style="font-size:20px;font-weight:700;color:var(--g900)">Member directory</h2><p style="font-size:13px;color:var(--g500);margin-top:2px">All registered NBA ID card members.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:0;border:1.5px solid var(--green);border-radius:var(--r);overflow:hidden"><select id="exportLimit" style="padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--green);background:#fff;border:none;outline:none;cursor:pointer;font-weight:500"><option value="">All</option><option value="50">50</option><option value="100">100</option><option value="250">250</option><option value="500">500</option><option value="1000">1000</option></select><div style="width:1px;background:var(--green);align-self:stretch"></div><button class="pill-btn" style="width:auto;padding:9px 16px;font-size:13px;background:#fff;color:var(--green);border:none;border-radius:0" id="exportSheetsBtn" onclick="adminExportSheets(this)">&#8659; Export to Sheets</button></div><button class="pill-btn" style="width:auto;padding:9px 20px;font-size:13px" onclick="showPanel('form',document.getElementById('nav-form'))">+ New registration</button></div></div>
       <!-- Sheets export toast -->
       <div id="sheets-toast" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:14px;font-size:13px;color:#166534">
         <strong>File downloaded!</strong> To view images: open <a href="https://sheets.new" target="_blank" style="color:var(--green);font-weight:600">sheets.new</a> &rarr; File &rarr; Import &rarr; Upload the downloaded file &rarr; choose <em>"Replace spreadsheet"</em>. Images will render automatically in the QR Code and Photo columns.
@@ -308,7 +308,12 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
         <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:16px 18px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);font-weight:700;margin-bottom:5px">Active members</div><div id="stActive" style="font-size:28px;font-weight:700;color:var(--g900)">0</div></div>
         <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:16px 18px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);font-weight:700;margin-bottom:5px">Latest member</div><div id="stLatest" style="font-size:14px;font-weight:700;color:var(--g900);padding-top:5px">&#8212;</div></div>
       </div>
-      <div style="margin-bottom:12px"><input type="text" id="adminQ" placeholder="Search by name, branch or year&#8230;" oninput="_adminPage=1;renderAdmin()" style="width:100%;padding:10px 13px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:13px;color:var(--g900);outline:none;background:var(--white)"/></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">
+        <input type="text" id="adminQ" placeholder="Search name, branch, enrolment&#8230;" oninput="_adminPage=1;renderAdmin()" style="flex:1;min-width:180px;padding:10px 13px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:13px;color:var(--g900);outline:none;background:var(--white)"/>
+        <select id="adminStatusFilter" onchange="_adminPage=1;renderAdmin()" style="padding:10px 13px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:13px;color:var(--g900);background:var(--white);outline:none;cursor:pointer"><option value="">All statuses</option><option value="active">Active</option><option value="pending">Pending</option><option value="suspended">Suspended</option></select>
+        <select id="adminPaymentFilter" onchange="_adminPage=1;renderAdmin()" style="padding:10px 13px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:13px;color:var(--g900);background:var(--white);outline:none;cursor:pointer"><option value="">All payments</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option></select>
+        <button id="adminClearBtn" onclick="adminClearFilters()" style="display:none;padding:10px 14px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:13px;color:var(--g500);background:var(--white);cursor:pointer">&#10005; Clear</button>
+      </div>
       <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);overflow:hidden;overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:900px"><thead><tr style="background:var(--green)"><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Photo</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Full name</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Branch</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Year</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Enrolment / SCN</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Email</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Phone</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Status</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Actions</th></tr></thead><tbody id="adminBody"></tbody></table>
       </div>
@@ -439,8 +444,8 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
       <div><div style="font-weight:700;font-size:15px;color:#111827">NBA ID Portal</div><div style="font-size:12px;color:#9ca3af">Reset your password</div></div>
     </div>
     <div id="reset-form">
-      <div class="af"><label>New password</label><input type="password" id="reset-pw1" placeholder="At least 8 characters" autocomplete="new-password"/></div>
-      <div class="af"><label>Confirm new password</label><input type="password" id="reset-pw2" placeholder="Repeat new password" autocomplete="new-password"/></div>
+      <div class="af"><label>New password</label><div style="position:relative"><input type="password" id="reset-pw1" placeholder="At least 8 characters" autocomplete="new-password" style="padding-right:42px"/><button type="button" onclick="togglePwVis('reset-pw1',this)" tabindex="-1" title="Show/hide password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:2px;color:var(--g400);line-height:0">&#128065;</button></div></div>
+      <div class="af"><label>Confirm new password</label><div style="position:relative"><input type="password" id="reset-pw2" placeholder="Repeat new password" autocomplete="new-password" style="padding-right:42px"/><button type="button" onclick="togglePwVis('reset-pw2',this)" tabindex="-1" title="Show/hide password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:2px;color:var(--g400);line-height:0">&#128065;</button></div></div>
       <button class="pill-btn" onclick="doResetPassword()" id="reset-btn" style="margin-top:4px">Set new password</button>
       <div id="reset-err" style="display:none;margin-top:10px;padding:10px 14px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:500"></div>
     </div>
@@ -476,9 +481,25 @@ function switchTab(t,el){document.querySelectorAll('.auth-tab').forEach(function
 function showForgotForm(){var le=document.getElementById('login-email');var fe=document.getElementById('forgot-email');if(fe&&le)fe.value=le.value;document.getElementById('tab-login').style.display='none';document.getElementById('tab-signup').style.display='none';document.getElementById('tab-forgot').style.display='block';document.getElementById('forgot-input').style.display='block';document.getElementById('forgot-done').style.display='none';document.getElementById('forgot-foot').style.display='block';var authErr=document.getElementById('authErr');if(authErr)authErr.style.display='none';}
 async function doForgotPassword(){var email=document.getElementById('forgot-email').value.trim();if(!email)return showAuthErr('Please enter your email address.');var btn=document.getElementById('forgot-btn');btn.disabled=true;btn.textContent='Sending\u2026';try{await fetch(API_URL+'/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})});document.getElementById('forgot-input').style.display='none';document.getElementById('forgot-done').style.display='block';}catch(e){showAuthErr('Network error. Please try again.');}finally{btn.disabled=false;btn.innerHTML='Send reset link &#8594;';}}
 function cloneLogos(){var src=document.getElementById('nba-logo-src');if(!src)return;var s=src.src;['logo-auth','logo-hero','logo-sb','logo-pub'].forEach(function(id){var el=document.getElementById(id);if(el)el.src=s;});}
+function togglePwVis(inputId,btn){var inp=document.getElementById(inputId);if(!inp)return;var show=inp.type==='password';inp.type=show?'text':'password';btn.textContent=show?'🙈':'👁';}
 function showAuthErr(msg,success){var el=document.getElementById('authErr');if(!el){el=document.createElement('div');el.id='authErr';el.style.cssText='margin-top:12px;padding:10px 14px;border-radius:6px;font-size:13px;font-weight:500;';var box=document.querySelector('.auth-box');if(box)box.appendChild(el);}el.textContent=msg;el.style.background=success?'#e8f5e9':'#fef2f2';el.style.color=success?'#2d7a3d':'#dc2626';el.style.display='block';}
 function isAdmin(){var token=localStorage.getItem('nba_token');if(!token)return false;try{var payload=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));return payload.role==='admin';}catch(e){return false;}}
 function authHeader(){var t=localStorage.getItem('nba_token')||'';return t?{'Authorization':'Bearer '+t}:{};}
+async function fetchWithRefresh(url,opts){
+  opts=opts||{};
+  opts.headers=Object.assign({},opts.headers,authHeader());
+  var res=await fetch(url,opts);
+  if(res.status!==401)return res;
+  var rt=localStorage.getItem('nba_refresh');
+  if(!rt){logout();return res;}
+  var rr=await fetch(API_URL+'/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:rt})});
+  if(!rr.ok){logout();return res;}
+  var rd=await rr.json();
+  localStorage.setItem('nba_token',rd.access_token);
+  localStorage.setItem('nba_refresh',rd.refresh_token);
+  opts.headers=Object.assign({},opts.headers,{'Authorization':'Bearer '+rd.access_token});
+  return fetch(url,opts);
+}
 function setMobActive(id){document.querySelectorAll('.mob-item').forEach(function(b){b.classList.remove('active');});var el=document.getElementById(id);if(el)el.classList.add('active');}
 function showPanel(id,navEl){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});document.getElementById('panel-'+id).classList.add('active');if(navEl)navEl.classList.add('active');var mm={profile:'mob-profile',form:'mob-form',payment:'mob-payment',admin:'mob-admin'};if(mm[id])setMobActive(mm[id]);}
 function showErr(msg){var el=document.getElementById('fErr');el.textContent=msg;el.style.display='block';setTimeout(function(){el.style.display='none';},5000);}
@@ -539,7 +560,7 @@ async function startApp(){
   }
   ['nav-profile','nav-form','nav-payment','mob-profile','mob-form','mob-payment'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='';});
   try{
-    var res=await fetch(API_URL+'/profiles/me',{headers:authHeader()});
+    var res=await fetchWithRefresh(API_URL+'/profiles/me',{});
     if(res.status===401){logout();return;}
     if(res.ok){
       var profile=await res.json();
@@ -564,9 +585,9 @@ async function verifyAndShowProfile(reference){
   if(mobAdmin)mobAdmin.style.display=isAdmin()?'':'none';
   try{
     // Poll up to 10 s for the Paystack webhook to process the payment
-    for(var i=0;i<10;i++){var vr=await fetch(API_URL+'/payments/verify/'+reference,{headers:authHeader()});if(vr.ok){var vd=await vr.json();if(vd.status==='success')break;}if(i<9)await new Promise(function(r){setTimeout(r,1000);});}
+    for(var i=0;i<10;i++){var vr=await fetchWithRefresh(API_URL+'/payments/verify/'+reference,{});if(vr.ok){var vd=await vr.json();if(vd.status==='success')break;}if(i<9)await new Promise(function(r){setTimeout(r,1000);});}
     // Load profile
-    var res=await fetch(API_URL+'/profiles/me',{headers:authHeader()});
+    var res=await fetchWithRefresh(API_URL+'/profiles/me',{});
     if(res.status===401){logout();return;}
     if(res.ok){
       var profile=await res.json();
@@ -606,8 +627,7 @@ async function runAICheck(dataUrl){
     var base64=dataUrl.split(',')[1];var mediaType=dataUrl.split(';')[0].split(':')[1];
     var byteStr=atob(base64);var arr=new Uint8Array(byteStr.length);for(var i=0;i<byteStr.length;i++)arr[i]=byteStr.charCodeAt(i);
     var blob=new Blob([arr],{type:mediaType});var form=new FormData();form.append('photo',blob,'photo.'+(mediaType.split('/')[1]||'jpg'));
-    var token=localStorage.getItem('nba_token')||'';
-    var res=await fetch(API_URL+'/photos/validate',{method:'POST',headers:token?{'Authorization':'Bearer '+token}:{},body:form});
+    var res=await fetchWithRefresh(API_URL+'/photos/validate',{method:'POST',body:form});
     var data=await res.json();
     document.getElementById('aiSpin').style.display='none';
     if(res.ok&&data.passed){box.className='ai-box pass';document.getElementById('aiMsg').innerHTML='<strong>&#10003; Photo approved</strong> &#8212; Score: '+(Math.round((data.score||1)*100))+'%';aiOk=true;}
@@ -640,7 +660,7 @@ async function doPayment(){
     form.append('phone_number',pending.phone);form.append('email_address',pending.email);
     form.append('office_address',pending.address);
     form.append('photo',blob,'photo.'+(mime.split('/')[1]||'jpg'));
-    var profileRes=await fetch(API_URL+'/profiles',{method:'POST',headers:authHeader(),body:form});
+    var profileRes=await fetchWithRefresh(API_URL+'/profiles',{method:'POST',body:form});
     var profileData=await profileRes.json();
     if(!profileRes.ok){
       var err=profileData.error||{};
@@ -658,7 +678,7 @@ async function doPayment(){
       }
     }
     // Step 2: initialise payment (free for 2019+, Paystack for earlier calls)
-    var initRes=await fetch(API_URL+'/payments/initialise',{method:'POST',headers:authHeader()});
+    var initRes=await fetchWithRefresh(API_URL+'/payments/initialise',{method:'POST'});
     var initData=await initRes.json();
     if(!initRes.ok){
       if(initRes.status===409){await startApp();return;}
@@ -701,7 +721,7 @@ async function doRegenerateQR(){
   var btn=document.getElementById('btn-regen-qr');
   if(btn){btn.disabled=true;btn.textContent='Regenerating\u2026';}
   try{
-    var res=await fetch(API_URL+'/qr/me/regenerate',{method:'POST',headers:authHeader()});
+    var res=await fetchWithRefresh(API_URL+'/qr/me/regenerate',{method:'POST'});
     var data=await res.json();
     if(res.ok&&data.qr_code_url){
       currentM.qr_code_url=data.qr_code_url;
@@ -723,11 +743,18 @@ function doShare(){
 var _adminPage=1;
 var _adminPageSize=20;
 function adminChangePage(delta){_adminPage=Math.max(1,_adminPage+delta);renderAdmin();}
+function adminClearFilters(){var q=document.getElementById('adminQ');var sf=document.getElementById('adminStatusFilter');var pf=document.getElementById('adminPaymentFilter');if(q)q.value='';if(sf)sf.value='';if(pf)pf.value='';_adminPage=1;renderAdmin();}
 async function renderAdmin(){
   if(!isAdmin())return;
   var q=(document.getElementById('adminQ')?document.getElementById('adminQ').value:'');
+  var statusF=(document.getElementById('adminStatusFilter')?document.getElementById('adminStatusFilter').value:'');
+  var paymentF=(document.getElementById('adminPaymentFilter')?document.getElementById('adminPaymentFilter').value:'');
+  var clearBtn=document.getElementById('adminClearBtn');
+  if(clearBtn)clearBtn.style.display=(q||statusF||paymentF)?'':'none';
   var params='?page='+_adminPage+'&page_size='+_adminPageSize;
   if(q)params+='&q='+encodeURIComponent(q);
+  if(statusF)params+='&status='+encodeURIComponent(statusF);
+  if(paymentF)params+='&payment_status='+encodeURIComponent(paymentF);
   var tb=document.getElementById('adminBody');
   try{
     var [membersRes,statsRes]=await Promise.all([
@@ -799,7 +826,7 @@ async function renderAdmin(){
 async function adminRegenQR(memberId,btn){
   if(btn){btn.disabled=true;btn.textContent='...';}
   try{
-    var res=await fetch(API_URL+'/admin/members/'+memberId+'/regenerate-qr',{method:'POST',headers:authHeader()});
+    var res=await fetchWithRefresh(API_URL+'/admin/members/'+memberId+'/regenerate-qr',{method:'POST'});
     var data=await res.json();
     if(res.ok){await renderAdmin();}
     else{alert((data.error&&data.error.message)||'Failed to regenerate QR. Please try again.');}
@@ -827,9 +854,9 @@ async function doAdminEnrollSave(){
   if(!val){errEl.textContent='Please enter an enrollment number.';errEl.style.display='block';return;}
   btn.disabled=true;btn.textContent='Saving\u2026';
   try{
-    var res=await fetch(API_URL+'/admin/members/'+_adminEditMemberId+'/enrollment-no',{
+    var res=await fetchWithRefresh(API_URL+'/admin/members/'+_adminEditMemberId+'/enrollment-no',{
       method:'PATCH',
-      headers:Object.assign({'Content-Type':'application/json'},authHeader()),
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({enrollment_no:val}),
     });
     var data=await res.json();
@@ -848,7 +875,10 @@ async function doAdminEnrollSave(){
 async function adminExportSheets(btn){
   btn.disabled=true;btn.textContent='Downloading\u2026';
   try{
-    var res=await fetch(API_URL+'/admin/export/sheets',{headers:authHeader()});
+    var limitEl=document.getElementById('exportLimit');
+    var limitVal=limitEl?limitEl.value:'';
+    var url=API_URL+'/admin/export/sheets'+(limitVal?'?limit='+encodeURIComponent(limitVal):'');
+    var res=await fetchWithRefresh(url,{});
     if(!res.ok){alert('Export failed. Please try again.');return;}
     var blob=await res.blob();
     var url=URL.createObjectURL(blob);
@@ -898,9 +928,9 @@ async function doAdminEditSave(){
   if(!Object.keys(body).length){errEl.textContent='No changes to save.';errEl.style.display='block';return;}
   btn.disabled=true;btn.textContent='Saving\u2026';
   try{
-    var res=await fetch(API_URL+'/admin/members/'+_adminEditMemberIdFull,{
+    var res=await fetchWithRefresh(API_URL+'/admin/members/'+_adminEditMemberIdFull,{
       method:'PATCH',
-      headers:Object.assign({'Content-Type':'application/json'},authHeader()),
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify(body),
     });
     var data=await res.json();
@@ -928,7 +958,7 @@ async function doAdminDeleteConfirm(){
   errEl.style.display='none';
   btn.disabled=true;btn.textContent='Deleting\u2026';
   try{
-    var res=await fetch(API_URL+'/admin/members/'+_adminDelMemberId,{method:'DELETE',headers:authHeader()});
+    var res=await fetchWithRefresh(API_URL+'/admin/members/'+_adminDelMemberId,{method:'DELETE'});
     if(res.ok||res.status===204){closeAdminDeleteModal();await renderAdmin();}
     else{var data=await res.json();errEl.textContent=(data.error&&data.error.message)||'Could not delete profile. Please try again.';errEl.style.display='block';}
   }catch(e){errEl.textContent='Network error. Please try again.';errEl.style.display='block';}
@@ -1007,7 +1037,7 @@ async function doChangePassword(){
   }
   btn.disabled=true;btn.textContent='Updating…';
   try{
-    var res=await fetch(API_URL+'/auth/change-password',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeader()),body:JSON.stringify({current_password:cur,new_password:nw})});
+    var res=await fetchWithRefresh(API_URL+'/auth/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({current_password:cur,new_password:nw})});
     var data=await res.json();
     if(!res.ok){
       var errMsg=(data.error&&data.error.message)||data.detail||'Failed to change password.';
@@ -1048,7 +1078,7 @@ async function doUpdateProfile(){
   if(address)form.append('office_address',address);
   if(modalPhotoFile)form.append('photo',modalPhotoFile,modalPhotoFile.name);
   try{
-    var res=await fetch(API_URL+'/profiles/me',{method:'PUT',headers:authHeader(),body:form});
+    var res=await fetchWithRefresh(API_URL+'/profiles/me',{method:'PUT',body:form});
     var data=await res.json();
     if(!res.ok){
       var err=data.error||{};
