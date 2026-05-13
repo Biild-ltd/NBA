@@ -64,6 +64,7 @@ NBA_BRANCHES: list[str] = [
     "Ilorin",
     "IsialaNgwa",
     "Isiokpo",
+    "Iseyin",
     "Iwo",
     "Jalingo",
     "Jos",
