@@ -242,6 +242,30 @@ async def export_members(
     )
 
 
+# ── GET /admin/export/xlsx ────────────────────────────────────────────────────
+
+@router.get("/export/xlsx")
+async def export_members_xlsx(
+    status: str | None = None,
+    branch: str | None = None,
+    payment_status: str | None = None,
+    limit: int | None = None,
+    current_user: dict = Depends(require_admin),
+) -> Response:
+    """Excel export with QR codes embedded as images — opens correctly in Excel, Numbers, LibreOffice."""
+    data = await admin_service.export_xlsx(
+        status_filter=status,
+        branch=branch,
+        payment_status=payment_status,
+        limit=limit,
+    )
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="members.xlsx"'},
+    )
+
+
 # ── GET /admin/export/sheets ──────────────────────────────────────────────────
 
 @router.get("/export/sheets", response_class=Response)

@@ -544,6 +544,115 @@ def _format_sheets_csv(members: list[dict]) -> str:
     return buf.getvalue()
 
 
+def _build_xlsx(rows: list[dict]) -> bytes:
+    """Build an .xlsx workbook with member data and QR codes embedded as images."""
+    from io import BytesIO as _BytesIO
+
+    import openpyxl
+    from openpyxl.drawing.image import Image as XLImage
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from PIL import Image as PILImage
+
+    from app.services.qr_service import _generate_qr_png
+
+    QR_PX = 80
+    ROW_H = 65  # points
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Members"
+
+    headers = [
+        "Full Name", "Branch", "Year of Call", "Enrollment No.",
+        "Email", "Phone", "Status", "Payment", "QR Code",
+    ]
+    ws.append(headers)
+
+    green_fill = PatternFill("solid", fgColor="1A5C2A")
+    white_bold = Font(bold=True, color="FFFFFF")
+    for cell in ws[1]:
+        cell.fill = green_fill
+        cell.font = white_bold
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 22
+
+    col_widths = [28, 14, 12, 16, 28, 16, 10, 10, 14]
+    for i, w in enumerate(col_widths, start=1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    ws.freeze_panes = "A2"
+
+    for row_num, m in enumerate(rows, start=2):
+        ws.append([
+            m.get("full_name", ""),
+            m.get("branch", ""),
+            m.get("year_of_call", ""),
+            m.get("enrollment_no", ""),
+            m.get("email_address", ""),
+            m.get("phone_number", ""),
+            m.get("status", ""),
+            m.get("payment_status", ""),
+            "",
+        ])
+        ws.row_dimensions[row_num].height = ROW_H
+
+        member_uid = m.get("member_uid")
+        if member_uid:
+            profile_url = f"{settings.FRONTEND_ORIGIN}/profile/{member_uid}"
+            qr_bytes = _generate_qr_png(profile_url)
+            pil_img = PILImage.open(_BytesIO(qr_bytes)).resize((QR_PX, QR_PX), PILImage.LANCZOS)
+            buf = _BytesIO()
+            pil_img.save(buf, "PNG")
+            buf.seek(0)
+            xl_img = XLImage(buf)
+            xl_img.width = QR_PX
+            xl_img.height = QR_PX
+            ws.add_image(xl_img, f"I{row_num}")
+
+    out = io.BytesIO()
+    wb.save(out)
+    return out.getvalue()
+
+
+async def export_xlsx(
+    status_filter: str | None = None,
+    branch: str | None = None,
+    payment_status: str | None = None,
+    limit: int | None = None,
+) -> bytes:
+    conditions: list[str] = []
+    params: list = []
+    idx = 1
+
+    if status_filter:
+        conditions.append(f"status = ${idx}")
+        params.append(status_filter)
+        idx += 1
+    if branch:
+        conditions.append(f"branch = ${idx}")
+        params.append(branch)
+        idx += 1
+    if payment_status:
+        conditions.append(f"payment_status = ${idx}")
+        params.append(payment_status)
+        idx += 1
+
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    limit_clause = ""
+    if limit is not None and limit > 0:
+        limit_clause = f" LIMIT ${idx}"
+        params.append(min(limit, 5000))
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            f"SELECT * FROM public.member_profiles {where} ORDER BY created_at DESC{limit_clause}",
+            *params,
+        )
+
+    return await asyncio.to_thread(_build_xlsx, [dict(r) for r in rows])
+
+
 async def export_sheets_csv(
     status_filter: str | None = None,
     branch: str | None = None,
