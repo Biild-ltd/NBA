@@ -250,6 +250,7 @@ async def export_members_xlsx(
     branch: str | None = None,
     payment_status: str | None = None,
     limit: int | None = None,
+    offset: int = 0,
     current_user: dict = Depends(require_admin),
 ) -> Response:
     """Excel export with QR codes embedded as images — opens correctly in Excel, Numbers, LibreOffice."""
@@ -258,6 +259,7 @@ async def export_members_xlsx(
         branch=branch,
         payment_status=payment_status,
         limit=limit,
+        offset=offset,
     )
     return Response(
         content=data,

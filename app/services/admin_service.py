@@ -631,6 +631,7 @@ async def export_xlsx(
     branch: str | None = None,
     payment_status: str | None = None,
     limit: int | None = None,
+    offset: int = 0,
 ) -> bytes:
     conditions: list[str] = []
     params: list = []
@@ -652,8 +653,9 @@ async def export_xlsx(
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     limit_clause = ""
     if limit is not None and limit > 0:
-        limit_clause = f" LIMIT ${idx}"
+        limit_clause = f" LIMIT ${idx} OFFSET ${idx + 1}"
         params.append(min(limit, 5000))
+        params.append(max(offset, 0))
 
     pool = await get_pool()
     async with pool.acquire() as conn:

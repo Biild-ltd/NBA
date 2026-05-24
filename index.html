@@ -297,7 +297,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
       </div>
     </div>
     <div class="panel" id="panel-admin">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px"><div><h2 style="font-size:20px;font-weight:700;color:var(--g900)">Member directory</h2><p style="font-size:13px;color:var(--g500);margin-top:2px">All registered NBA ID card members.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:0;border:1.5px solid var(--green);border-radius:var(--r);overflow:hidden"><select id="exportLimit" style="padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--green);background:#fff;border:none;outline:none;cursor:pointer;font-weight:500"><option value="">All</option><option value="50">50</option><option value="100">100</option><option value="250">250</option><option value="500">500</option><option value="1000">1000</option></select><div style="width:1px;background:var(--green);align-self:stretch"></div><button class="pill-btn" style="width:auto;padding:9px 16px;font-size:13px;background:#fff;color:var(--green);border:none;border-radius:0" onclick="adminExportXlsx(this)">&#8659; Export Excel</button></div><button class="pill-btn" style="width:auto;padding:9px 20px;font-size:13px" onclick="showPanel('form',document.getElementById('nav-form'))">+ New registration</button></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px"><div><h2 style="font-size:20px;font-weight:700;color:var(--g900)">Member directory</h2><p style="font-size:13px;color:var(--g500);margin-top:2px">All registered NBA ID card members.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:0;border:1.5px solid var(--green);border-radius:var(--r);overflow:hidden"><span style="padding:0 8px 0 12px;font-size:12px;color:var(--g500);font-weight:500;white-space:nowrap">Rows</span><input type="number" id="xlFrom" min="1" value="1" style="width:58px;padding:8px 4px;font-family:'Inter',sans-serif;font-size:13px;color:var(--green);background:#fff;border:none;outline:none;font-weight:600;text-align:center"/><span style="font-size:13px;color:var(--g400);padding:0 2px">–</span><input type="number" id="xlTo" min="1" value="100" style="width:58px;padding:8px 4px;font-family:'Inter',sans-serif;font-size:13px;color:var(--green);background:#fff;border:none;outline:none;font-weight:600;text-align:center"/><div style="width:1px;background:var(--green);align-self:stretch"></div><button class="pill-btn" style="width:auto;padding:9px 16px;font-size:13px;background:#fff;color:var(--green);border:none;border-radius:0" onclick="adminExportXlsx(this)">&#8659; Export Excel</button></div><button class="pill-btn" style="width:auto;padding:9px 20px;font-size:13px" onclick="showPanel('form',document.getElementById('nav-form'))">+ New registration</button></div></div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
         <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:16px 18px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);font-weight:700;margin-bottom:5px">Total members</div><div id="stTotal" style="font-size:28px;font-weight:700;color:var(--g900)">0</div></div>
         <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:16px 18px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);font-weight:700;margin-bottom:5px">Active members</div><div id="stActive" style="font-size:28px;font-weight:700;color:var(--g900)">0</div></div>
@@ -868,17 +868,20 @@ async function doAdminEnrollSave(){
 }
 /* ── Admin export to Google Sheets ──────────────────────────────────────── */
 async function adminExportXlsx(btn){
+  var from=Math.max(1,parseInt(document.getElementById('xlFrom').value)||1);
+  var to=Math.max(1,parseInt(document.getElementById('xlTo').value)||100);
+  if(to<from){alert('End row must be ≥ start row.');return;}
   var origText=btn.textContent;
   btn.disabled=true;btn.textContent='Building…';
   try{
-    var limitEl=document.getElementById('exportLimit');
-    var limitVal=limitEl?limitEl.value:'';
-    var url=API_URL+'/admin/export/xlsx'+(limitVal?'?limit='+encodeURIComponent(limitVal):'');
+    var limit=to-from+1;
+    var offset=from-1;
+    var url=API_URL+'/admin/export/xlsx?limit='+limit+'&offset='+offset;
     var res=await fetchWithRefresh(url,{});
     if(!res.ok){alert('Export failed. Please try again.');return;}
     var blob=await res.blob();
     var objUrl=URL.createObjectURL(blob);
-    var a=document.createElement('a');a.href=objUrl;a.download='members.xlsx';document.body.appendChild(a);a.click();
+    var a=document.createElement('a');a.href=objUrl;a.download='members_'+from+'-'+to+'.xlsx';document.body.appendChild(a);a.click();
     setTimeout(function(){URL.revokeObjectURL(objUrl);a.remove();},1000);
   }catch(e){alert('Network error. Please try again.');}
   btn.disabled=false;btn.textContent=origText;
