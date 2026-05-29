@@ -12,6 +12,7 @@ import secrets
 import string
 
 import asyncpg
+import httpx
 from fastapi import HTTPException, status
 
 from app.config import settings
@@ -544,11 +545,25 @@ def _format_sheets_csv(members: list[dict]) -> str:
     return buf.getvalue()
 
 
-def _build_xlsx(rows: list[dict]) -> bytes:
-    """Build an .xlsx workbook with member data and QR codes embedded as images.
+async def _fetch_photo_buf(client: httpx.AsyncClient, url: str | None) -> io.BytesIO | None:
+    if not url:
+        return None
+    try:
+        r = await client.get(url, timeout=8.0)
+        if r.status_code == 200:
+            buf = io.BytesIO(r.content)
+            buf.seek(0)
+            return buf
+    except Exception:
+        pass
+    return None
 
-    QR PNGs are generated in parallel (up to 8 threads) before the workbook
-    is assembled sequentially, cutting build time by ~8x on large batches.
+
+def _build_xlsx(rows: list[dict], photo_bufs: list[io.BytesIO | None]) -> bytes:
+    """Build an .xlsx workbook with member data, QR codes, and passport photos embedded as images.
+
+    QR PNGs are generated in parallel (up to 8 threads); photo bytes are
+    pre-fetched asynchronously and passed in.
     """
     from concurrent.futures import ThreadPoolExecutor
     from io import BytesIO as _BytesIO
@@ -561,7 +576,8 @@ def _build_xlsx(rows: list[dict]) -> bytes:
     from app.services.qr_service import _generate_qr_png
 
     QR_PX = 80
-    ROW_H = 65  # points
+    PHOTO_W, PHOTO_H = 60, 80  # portrait ratio
+    ROW_H = 80  # points — tall enough for 80px images
 
     def _render_qr(m: dict) -> "_BytesIO | None":
         uid = m.get("member_uid")
@@ -574,8 +590,22 @@ def _build_xlsx(rows: list[dict]) -> bytes:
         buf.seek(0)
         return buf
 
+    def _render_photo(src: "_BytesIO | None") -> "_BytesIO | None":
+        if src is None:
+            return None
+        try:
+            src.seek(0)
+            pil = PILImage.open(src).convert("RGB").resize((PHOTO_W, PHOTO_H), PILImage.LANCZOS)
+            buf = _BytesIO()
+            pil.save(buf, "PNG")
+            buf.seek(0)
+            return buf
+        except Exception:
+            return None
+
     with ThreadPoolExecutor(max_workers=8) as pool:
         qr_bufs = list(pool.map(_render_qr, rows))
+        photo_resized = list(pool.map(_render_photo, photo_bufs))
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -583,7 +613,7 @@ def _build_xlsx(rows: list[dict]) -> bytes:
 
     headers = [
         "Full Name", "Branch", "Year of Call", "Enrollment No.",
-        "Email", "Phone", "Status", "Payment", "QR Code",
+        "Email", "Phone", "Status", "Payment", "QR Code", "Photo",
     ]
     ws.append(headers)
 
@@ -595,13 +625,13 @@ def _build_xlsx(rows: list[dict]) -> bytes:
         cell.alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 22
 
-    col_widths = [28, 14, 12, 16, 28, 16, 10, 10, 14]
+    col_widths = [28, 14, 12, 16, 28, 16, 10, 10, 12, 10]
     for i, w in enumerate(col_widths, start=1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
 
     ws.freeze_panes = "A2"
 
-    for row_num, (m, qr_buf) in enumerate(zip(rows, qr_bufs), start=2):
+    for row_num, (m, qr_buf, photo_buf) in enumerate(zip(rows, qr_bufs, photo_resized), start=2):
         ws.append([
             m.get("full_name", ""),
             m.get("branch", ""),
@@ -611,7 +641,7 @@ def _build_xlsx(rows: list[dict]) -> bytes:
             m.get("phone_number", ""),
             m.get("status", ""),
             m.get("payment_status", ""),
-            "",
+            "", "",  # placeholders for QR (I) and Photo (J)
         ])
         ws.row_dimensions[row_num].height = ROW_H
 
@@ -620,6 +650,12 @@ def _build_xlsx(rows: list[dict]) -> bytes:
             xl_img.width = QR_PX
             xl_img.height = QR_PX
             ws.add_image(xl_img, f"I{row_num}")
+
+        if photo_buf:
+            xl_img = XLImage(photo_buf)
+            xl_img.width = PHOTO_W
+            xl_img.height = PHOTO_H
+            ws.add_image(xl_img, f"J{row_num}")
 
     out = io.BytesIO()
     wb.save(out)
@@ -664,7 +700,14 @@ async def export_xlsx(
             *params,
         )
 
-    return await asyncio.to_thread(_build_xlsx, [dict(r) for r in rows])
+    row_dicts = [dict(r) for r in rows]
+
+    async with httpx.AsyncClient() as client:
+        photo_bufs = list(await asyncio.gather(*[
+            _fetch_photo_buf(client, m.get("photo_url")) for m in row_dicts
+        ]))
+
+    return await asyncio.to_thread(_build_xlsx, row_dicts, photo_bufs)
 
 
 async def export_sheets_csv(
