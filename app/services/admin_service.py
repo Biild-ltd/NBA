@@ -575,16 +575,19 @@ def _build_xlsx(rows: list[dict], photo_bufs: list[io.BytesIO | None]) -> bytes:
 
     from app.services.qr_service import _generate_qr_png
 
-    QR_PX = 80
-    PHOTO_W, PHOTO_H = 60, 80  # portrait ratio
-    ROW_H = 80  # points — tall enough for 80px images
+    # Image data resolution (high-res for extraction) vs display size in the sheet
+    QR_DATA_PX = 200     # embedded PNG resolution
+    QR_DISP_PX = 80      # displayed cell size (pts ≈ px at 96dpi)
+    PHOTO_DATA_W, PHOTO_DATA_H = 810, 1080   # embedded PNG — 1080p portrait
+    PHOTO_DISP_W, PHOTO_DISP_H = 90, 120    # displayed cell size
+    ROW_H = 120  # row height in points, matches PHOTO_DISP_H
 
     def _render_qr(m: dict) -> "_BytesIO | None":
         uid = m.get("member_uid")
         if not uid:
             return None
         raw = _generate_qr_png(f"{settings.FRONTEND_ORIGIN}/profile/{uid}")
-        pil = PILImage.open(_BytesIO(raw)).resize((QR_PX, QR_PX), PILImage.LANCZOS)
+        pil = PILImage.open(_BytesIO(raw)).resize((QR_DATA_PX, QR_DATA_PX), PILImage.LANCZOS)
         buf = _BytesIO()
         pil.save(buf, "PNG")
         buf.seek(0)
@@ -595,7 +598,19 @@ def _build_xlsx(rows: list[dict], photo_bufs: list[io.BytesIO | None]) -> bytes:
             return None
         try:
             src.seek(0)
-            pil = PILImage.open(src).convert("RGB").resize((PHOTO_W, PHOTO_H), PILImage.LANCZOS)
+            pil = PILImage.open(src).convert("RGB")
+            # Upscale to 1080p portrait; never downscale below original size
+            orig_w, orig_h = pil.size
+            target_w, target_h = PHOTO_DATA_W, PHOTO_DATA_H
+            if orig_w < target_w or orig_h < target_h:
+                scale = max(target_w / orig_w, target_h / orig_h)
+                pil = pil.resize(
+                    (round(orig_w * scale), round(orig_h * scale)), PILImage.LANCZOS
+                )
+                # centre-crop to exact target
+                left = (pil.width - target_w) // 2
+                top = (pil.height - target_h) // 2
+                pil = pil.crop((left, top, left + target_w, top + target_h))
             buf = _BytesIO()
             pil.save(buf, "PNG")
             buf.seek(0)
@@ -625,7 +640,7 @@ def _build_xlsx(rows: list[dict], photo_bufs: list[io.BytesIO | None]) -> bytes:
         cell.alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 22
 
-    col_widths = [28, 14, 12, 16, 28, 16, 10, 10, 12, 10]
+    col_widths = [28, 14, 12, 16, 28, 16, 10, 10, 12, 14]
     for i, w in enumerate(col_widths, start=1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
 
@@ -647,14 +662,14 @@ def _build_xlsx(rows: list[dict], photo_bufs: list[io.BytesIO | None]) -> bytes:
 
         if qr_buf:
             xl_img = XLImage(qr_buf)
-            xl_img.width = QR_PX
-            xl_img.height = QR_PX
+            xl_img.width = QR_DISP_PX
+            xl_img.height = QR_DISP_PX
             ws.add_image(xl_img, f"I{row_num}")
 
         if photo_buf:
             xl_img = XLImage(photo_buf)
-            xl_img.width = PHOTO_W
-            xl_img.height = PHOTO_H
+            xl_img.width = PHOTO_DISP_W
+            xl_img.height = PHOTO_DISP_H
             ws.add_image(xl_img, f"J{row_num}")
 
     out = io.BytesIO()
