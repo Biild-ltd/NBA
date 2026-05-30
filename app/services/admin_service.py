@@ -586,12 +586,16 @@ def _build_xlsx(rows: list[dict], photo_bufs: list[io.BytesIO | None]) -> bytes:
         uid = m.get("member_uid")
         if not uid:
             return None
-        raw = _generate_qr_png(f"{settings.FRONTEND_ORIGIN}/profile/{uid}")
-        pil = PILImage.open(_BytesIO(raw)).resize((QR_DATA_PX, QR_DATA_PX), PILImage.LANCZOS)
-        buf = _BytesIO()
-        pil.save(buf, "PNG")
-        buf.seek(0)
-        return buf
+        try:
+            raw = _generate_qr_png(f"{settings.FRONTEND_ORIGIN}/profile/{uid}")
+            pil = PILImage.open(_BytesIO(raw)).resize((QR_DATA_PX, QR_DATA_PX), PILImage.LANCZOS)
+            buf = _BytesIO()
+            pil.save(buf, "PNG")
+            buf.seek(0)
+            return buf
+        except Exception:
+            logger.exception("QR render failed for member_uid=%s", uid)
+            return None
 
     def _render_photo(src: "_BytesIO | None") -> "_BytesIO | None":
         if src is None:
@@ -599,23 +603,22 @@ def _build_xlsx(rows: list[dict], photo_bufs: list[io.BytesIO | None]) -> bytes:
         try:
             src.seek(0)
             pil = PILImage.open(src).convert("RGB")
-            # Upscale to 1080p portrait; never downscale below original size
             orig_w, orig_h = pil.size
             target_w, target_h = PHOTO_DATA_W, PHOTO_DATA_H
-            if orig_w < target_w or orig_h < target_h:
-                scale = max(target_w / orig_w, target_h / orig_h)
-                pil = pil.resize(
-                    (round(orig_w * scale), round(orig_h * scale)), PILImage.LANCZOS
-                )
-                # centre-crop to exact target
-                left = (pil.width - target_w) // 2
-                top = (pil.height - target_h) // 2
-                pil = pil.crop((left, top, left + target_w, top + target_h))
+            # Scale so the shorter axis meets the target; crop to exact size.
+            # Works for both upscaling (small photos) and downscaling (large photos).
+            scale = max(target_w / orig_w, target_h / orig_h)
+            new_w, new_h = round(orig_w * scale), round(orig_h * scale)
+            pil = pil.resize((new_w, new_h), PILImage.LANCZOS)
+            left = (pil.width - target_w) // 2
+            top = (pil.height - target_h) // 2
+            pil = pil.crop((left, top, left + target_w, top + target_h))
             buf = _BytesIO()
             pil.save(buf, "PNG")
             buf.seek(0)
             return buf
         except Exception:
+            logger.exception("Photo render failed")
             return None
 
     with ThreadPoolExecutor(max_workers=8) as pool:
@@ -716,13 +719,19 @@ async def export_xlsx(
         )
 
     row_dicts = [dict(r) for r in rows]
+    logger.info("export_xlsx: fetching photos for %d members", len(row_dicts))
 
     async with httpx.AsyncClient() as client:
         photo_bufs = list(await asyncio.gather(*[
             _fetch_photo_buf(client, m.get("photo_url")) for m in row_dicts
         ]))
 
-    return await asyncio.to_thread(_build_xlsx, row_dicts, photo_bufs)
+    logger.info("export_xlsx: building workbook")
+    try:
+        return await asyncio.to_thread(_build_xlsx, row_dicts, photo_bufs)
+    except Exception:
+        logger.exception("export_xlsx: _build_xlsx failed")
+        raise
 
 
 async def export_sheets_csv(
