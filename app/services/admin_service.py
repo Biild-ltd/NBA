@@ -614,7 +614,7 @@ def _build_xlsx(rows: list[dict], photo_bufs: list[io.BytesIO | None]) -> bytes:
             top = (pil.height - target_h) // 2
             pil = pil.crop((left, top, left + target_w, top + target_h))
             buf = _BytesIO()
-            pil.save(buf, "PNG")
+            pil.save(buf, "JPEG", quality=85, optimize=True)
             buf.seek(0)
             return buf
         except Exception:
