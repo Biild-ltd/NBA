@@ -307,15 +307,20 @@ class TestPaymentServiceUnit:
         assert call_record["member_id"] == "test-user-00000000"
         assert call_record["status"] == "pending"
 
-    async def test_initialise_free_for_2019_and_later(self):
-        """Members called from 2019 onwards skip Paystack and are auto-activated."""
+    async def test_initialise_charges_2019_and_later(self):
+        """Members called from 2019 onwards now also go through Paystack — the free tier was removed."""
         from app.services.payment_service import initialise_payment
 
         mock_profile = {
             "id": "test-user-00000001",
             "email_address": "junior@nba.org.ng",
             "payment_status": "unpaid",
-            "year_of_call": 2021,   # >= 2019 → free
+            "year_of_call": 2021,   # no longer exempt
+        }
+        mock_paystack_resp = MagicMock()
+        mock_paystack_resp.raise_for_status = MagicMock()
+        mock_paystack_resp.json.return_value = {
+            "data": {"authorization_url": "https://checkout.paystack.com/xyz", "reference": "NBA-TEST"}
         }
 
         with (
@@ -324,17 +329,20 @@ class TestPaymentServiceUnit:
                 return_value=mock_profile,
             ),
             patch(
-                "app.services.payment_service.bypass_payment",
-                new_callable=AsyncMock,
-                return_value={"reference": "NBA-FREE-ABCD1234", "status": "success"},
-            ) as mock_bypass,
+                "app.services.payment_service._insert_transaction"
+            ) as mock_insert,
+            patch("httpx.AsyncClient") as mock_http_cls,
         ):
+            mock_http = AsyncMock()
+            mock_http_cls.return_value.__aenter__ = AsyncMock(return_value=mock_http)
+            mock_http_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+            mock_http.post = AsyncMock(return_value=mock_paystack_resp)
+
             result = await initialise_payment("test-user-00000001")
 
-        assert result["free"] is True
-        assert result["reference"] == "NBA-FREE-ABCD1234"
-        assert result["authorization_url"] is None
-        mock_bypass.assert_called_once_with("test-user-00000001")
+        assert "authorization_url" in result
+        assert "reference" in result
+        mock_insert.assert_called_once()
 
     async def test_webhook_idempotency_skips_processing(self):
         from app.services.payment_service import handle_webhook

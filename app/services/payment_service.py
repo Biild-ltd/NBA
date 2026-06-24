@@ -120,11 +120,6 @@ async def initialise_payment(user_id: str) -> dict:
     if profile["payment_status"] == "paid":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="PAYMENT_ALREADY_COMPLETED")
 
-    # Members called to bar from 2019 onwards receive free digital membership
-    if profile["year_of_call"] >= 2019:
-        result = await bypass_payment(user_id)
-        return {"free": True, "reference": result["reference"], "authorization_url": None}
-
     reference = f"NBA-{secrets.token_hex(8).upper()}"
 
     try:
