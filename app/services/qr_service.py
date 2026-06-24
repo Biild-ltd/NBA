@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 # ── Sync helpers ───────────────────────────────────────────────────────────────
 
 def _generate_qr_png(profile_url: str) -> bytes:
-    """Generate a 400×400 NBA-green QR code PNG and return raw bytes."""
+    """Generate a 400×400 black-on-white QR code PNG and return raw bytes."""
     qr = qrcode.QRCode(
         version=None,
         error_correction=ERROR_CORRECT_M,
@@ -36,7 +36,7 @@ def _generate_qr_png(profile_url: str) -> bytes:
     )
     qr.add_data(profile_url)
     qr.make(fit=True)
-    img_wrapper = qr.make_image(fill_color="#1A5C2A", back_color="#FFFFFF")
+    img_wrapper = qr.make_image(fill_color="#000000", back_color="#FFFFFF")
     img_resized = img_wrapper.get_image().resize((400, 400), Image.LANCZOS)
     buf = io.BytesIO()
     img_resized.save(buf, format="PNG")
