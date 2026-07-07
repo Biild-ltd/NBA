@@ -85,6 +85,30 @@ class AdminProfileUpdateRequest(BaseModel):
         return v
 
 
+class StaffMember(BaseModel):
+    id: str
+    full_name: str
+    department: str
+    photo_url: str | None
+    signature_url: str | None
+    created_at: datetime
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def coerce_id(cls, v: object) -> str:
+        return str(v)
+
+
+class StaffListResponse(BaseModel):
+    total: int
+    staff: list[StaffMember]
+
+
+class StaffCreateRequest(BaseModel):
+    full_name: str = Field(min_length=2, max_length=150)
+    department: str = Field(min_length=2, max_length=200)
+
+
 class AuditLogEntry(BaseModel):
     id: str
     admin_id: str

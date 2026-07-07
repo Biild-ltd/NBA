@@ -83,7 +83,7 @@ requirements.txt
 
 **Paystack webhooks:** Verify HMAC-SHA512 signature before processing. Always independently re-verify payment status via Paystack API. Handle duplicate webhooks idempotently.
 
-**QR codes:** Black (`#000000`) on white, 400×400px PNG, error correction M (15%). Stored at `member-assets/qrcodes/{member_id}/qr.png` in Supabase Storage.
+**QR codes:** NBA green (`#1A5C2A`) on white, 400×400px PNG, error correction M (15%). Stored at `member-assets/qrcodes/{member_id}/qr.png` in Supabase Storage.
 
 **member_uid format:** `NBA-XXXXXX-XXXXXXXX` (generated server-side, stored on profile).
 

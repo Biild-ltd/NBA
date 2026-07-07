@@ -12,9 +12,12 @@ from app.models.admin import (
     MemberDirectoryResponse,
     AdminMemberSummary,
     StatusUpdateRequest,
+    StaffCreateRequest,
+    StaffListResponse,
+    StaffMember,
 )
 from app.models.profile import ProfileCreate, ProfileResponse
-from app.services import admin_service
+from app.services import admin_service, staff_service
 from app.services.photo_service import validate_photo_stage1
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -306,3 +309,63 @@ async def get_audit_log(
         page_size=page_size,
         entries=[AuditLogEntry(**e) for e in entries],
     )
+
+
+# ── Staff endpoints ───────────────────────────────────────────────────────────
+
+@router.get("/staff", response_model=StaffListResponse)
+async def list_staff(
+    current_user: dict = Depends(require_admin),
+) -> StaffListResponse:
+    """List all NBA staff members, ordered by name."""
+    rows = await staff_service.list_staff()
+    return StaffListResponse(total=len(rows), staff=[StaffMember(**r) for r in rows])
+
+
+@router.post("/staff", response_model=StaffMember, status_code=201)
+async def create_staff(
+    body: StaffCreateRequest,
+    current_user: dict = Depends(require_admin),
+) -> StaffMember:
+    """Add a new staff member record."""
+    row = await staff_service.create_staff(body.full_name, body.department)
+    return StaffMember(**row)
+
+
+@router.post("/staff/{staff_id}/photo", response_model=StaffMember)
+async def upload_staff_photo(
+    staff_id: str,
+    photo: UploadFile = File(...),
+    current_user: dict = Depends(require_admin),
+) -> StaffMember:
+    """Upload or replace a staff member's passport photograph."""
+    data = await photo.read()
+    mime = validate_photo_stage1(data)  # size / MIME / dimension checks
+    row = await staff_service.set_staff_photo(staff_id, data, mime)
+    return StaffMember(**row)
+
+
+@router.post("/staff/{staff_id}/signature", response_model=StaffMember)
+async def upload_staff_signature(
+    staff_id: str,
+    signature: UploadFile = File(...),
+    current_user: dict = Depends(require_admin),
+) -> StaffMember:
+    """Upload or replace a staff member's signature image."""
+    data = await signature.read()
+    if len(data) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=422, detail={"code": "PAYLOAD_TOO_LARGE", "message": "Signature image must be under 5 MB.", "details": {}})
+    content_type = signature.content_type or ""
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=422, detail={"code": "INVALID_FILE_TYPE", "message": "Signature must be an image file.", "details": {}})
+    row = await staff_service.set_staff_signature(staff_id, data, content_type)
+    return StaffMember(**row)
+
+
+@router.delete("/staff/{staff_id}", status_code=204)
+async def delete_staff(
+    staff_id: str,
+    current_user: dict = Depends(require_admin),
+) -> None:
+    """Delete a staff member record."""
+    await staff_service.delete_staff(staff_id)
