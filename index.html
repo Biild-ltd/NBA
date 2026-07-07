@@ -251,6 +251,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
       <div class="nav-item" id="nav-form" onclick="showPanel('form',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>Apply / Edit</div>
       <div class="nav-item" id="nav-payment" onclick="showPanel('payment',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/></svg>Payment</div>
       <div class="nav-item" id="nav-admin" onclick="showPanel('admin',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Admin</div>
+      <div class="nav-item" id="nav-staff" onclick="showPanel('staff',this);renderStaff()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Staff</div>
     </nav>
     <div class="sb-bottom"><button class="logout-btn" onclick="logout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7"/><path d="M9 20H5a2 2 0 01-2-2V6a2 2 0 012-2h4"/></svg>Logout</button></div>
   </div>
@@ -320,6 +321,12 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
         </div>
       </div>
     </div>
+    <div class="panel" id="panel-staff">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px"><div><h2 style="font-size:20px;font-weight:700;color:var(--g900)">Staff directory</h2><p style="font-size:13px;color:var(--g500);margin-top:2px">NBA secretariat staff — upload passport photos and signatures to generate ID cards.</p></div><button class="pill-btn" style="width:auto;padding:9px 20px;font-size:13px" onclick="staffOpenAdd()">+ Add staff</button></div>
+      <div style="background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);overflow:hidden;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:700px"><thead><tr style="background:var(--green)"><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Photo</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Full name</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Department</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Signature</th><th style="padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.85);font-weight:600">Actions</th></tr></thead><tbody id="staffBody"></tbody></table>
+      </div>
+    </div>
   </div>
   <nav class="mobile-nav">
     <div class="mobile-nav-inner">
@@ -327,6 +334,7 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
       <button class="mob-item" id="mob-form" onclick="showPanel('form',document.getElementById('nav-form'));setMobActive('mob-form')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg><span>Apply</span></button>
       <button class="mob-item" id="mob-payment" onclick="showPanel('payment',document.getElementById('nav-payment'));setMobActive('mob-payment')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/></svg><span>Payment</span></button>
       <button class="mob-item" id="mob-admin" onclick="showPanel('admin',document.getElementById('nav-admin'));setMobActive('mob-admin')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Admin</span></button>
+      <button class="mob-item" id="mob-staff" onclick="showPanel('staff',document.getElementById('nav-staff'));setMobActive('mob-staff');renderStaff()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Staff</span></button>
       <button class="mob-item" onclick="logout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 16l4-4m0 0l-4-4m4 4H7"/><path d="M9 20H5a2 2 0 01-2-2V6a2 2 0 012-2h4"/></svg><span>Logout</span></button>
     </div>
   </nav>
@@ -430,6 +438,47 @@ body{font-family:'Inter',sans-serif;background:var(--white);min-height:100vh;col
       <div id="adm-del-err" style="display:none;margin-top:10px;padding:10px 14px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:500"></div>
     </div>
   </div>
+  <!-- Staff Add Modal -->
+  <div id="modal-staff-add" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:420px;padding:28px 24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h3 style="font-size:17px;font-weight:700;color:#111827;margin:0">Add staff member</h3>
+        <button onclick="closeStaffAddModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b7280;line-height:1;padding:0 4px">&times;</button>
+      </div>
+      <div class="af"><label>Full name</label><input type="text" id="staff-add-name" placeholder="e.g. Amara Okafor"/></div>
+      <div class="af"><label>Department / Unit</label><input type="text" id="staff-add-dept" placeholder="e.g. Membership and Bar Services"/></div>
+      <button class="pill-btn" onclick="doStaffAdd()" id="staff-add-btn" style="margin-top:4px">Add staff member</button>
+      <div id="staff-add-err" style="display:none;margin-top:10px;padding:10px 14px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:500"></div>
+    </div>
+  </div>
+  <!-- Staff Upload Photo Modal -->
+  <div id="modal-staff-photo" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:420px;padding:28px 24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h3 style="font-size:17px;font-weight:700;color:#111827;margin:0">Upload passport photo</h3>
+        <button onclick="closeStaffPhotoModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b7280;line-height:1;padding:0 4px">&times;</button>
+      </div>
+      <div style="font-size:12px;color:var(--g500);margin-bottom:14px">Passport-style &middot; White background &middot; Face clearly visible &middot; Max 5 MB</div>
+      <input type="file" id="staff-photo-input" accept="image/jpeg,image/png,image/webp" style="width:100%;margin-bottom:12px" onchange="handleStaffPhotoSelect(this.files[0])"/>
+      <img id="staff-photo-preview" style="display:none;width:90px;height:108px;object-fit:cover;border-radius:6px;border:2px solid var(--green);margin-bottom:12px" alt="Preview"/>
+      <button class="pill-btn" onclick="doStaffPhotoUpload()" id="staff-photo-btn">Upload photo</button>
+      <div id="staff-photo-err" style="display:none;margin-top:10px;padding:10px 14px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:500"></div>
+    </div>
+  </div>
+  <!-- Staff Upload Signature Modal -->
+  <div id="modal-staff-sig" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:420px;padding:28px 24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h3 style="font-size:17px;font-weight:700;color:#111827;margin:0">Upload signature</h3>
+        <button onclick="closeStaffSigModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b7280;line-height:1;padding:0 4px">&times;</button>
+      </div>
+      <div style="font-size:12px;color:var(--g500);margin-bottom:14px">Clear image of signature on plain white paper &middot; JPG or PNG &middot; Max 5 MB</div>
+      <input type="file" id="staff-sig-input" accept="image/jpeg,image/png,image/webp" style="width:100%;margin-bottom:12px" onchange="handleStaffSigSelect(this.files[0])"/>
+      <img id="staff-sig-preview" style="display:none;max-height:80px;max-width:100%;object-fit:contain;border-radius:4px;border:1px solid var(--g200);margin-bottom:12px;background:#fff;padding:4px" alt="Preview"/>
+      <button class="pill-btn" onclick="doStaffSigUpload()" id="staff-sig-btn">Upload signature</button>
+      <div id="staff-sig-err" style="display:none;margin-top:10px;padding:10px 14px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:500"></div>
+    </div>
+  </div>
 </div>
 <!-- Reset Password Page -->
 <div id="pg-reset" class="page">
@@ -496,7 +545,7 @@ async function fetchWithRefresh(url,opts){
   return fetch(url,opts);
 }
 function setMobActive(id){document.querySelectorAll('.mob-item').forEach(function(b){b.classList.remove('active');});var el=document.getElementById(id);if(el)el.classList.add('active');}
-function showPanel(id,navEl){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});document.getElementById('panel-'+id).classList.add('active');if(navEl)navEl.classList.add('active');var mm={profile:'mob-profile',form:'mob-form',payment:'mob-payment',admin:'mob-admin'};if(mm[id])setMobActive(mm[id]);}
+function showPanel(id,navEl){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});document.getElementById('panel-'+id).classList.add('active');if(navEl)navEl.classList.add('active');var mm={profile:'mob-profile',form:'mob-form',payment:'mob-payment',admin:'mob-admin',staff:'mob-staff'};if(mm[id])setMobActive(mm[id]);}
 function showErr(msg){var el=document.getElementById('fErr');el.textContent=msg;el.style.display='block';setTimeout(function(){el.style.display='none';},5000);}
 function showPayErr(msg){var el=document.getElementById('payErr');if(el){el.textContent=msg;el.style.display='block';}}
 function clearPayErr(){var el=document.getElementById('payErr');if(el){el.style.display='none';el.textContent='';}}
@@ -543,8 +592,11 @@ async function doLogin(){
 async function startApp(){
   showPage('pg-dash');
   var adminNav=document.getElementById('nav-admin');var mobAdmin=document.getElementById('mob-admin');
+  var staffNav=document.getElementById('nav-staff');var mobStaff=document.getElementById('mob-staff');
   if(adminNav)adminNav.style.display=isAdmin()?'':'none';
   if(mobAdmin)mobAdmin.style.display=isAdmin()?'':'none';
+  if(staffNav)staffNav.style.display=isAdmin()?'':'none';
+  if(mobStaff)mobStaff.style.display=isAdmin()?'':'none';
   if(isAdmin()){
     ['nav-profile','nav-form','nav-payment','mob-profile','mob-form','mob-payment'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='none';});
     document.getElementById('topbar-name').textContent='ADMIN';
@@ -576,8 +628,11 @@ async function startApp(){
 async function verifyAndShowProfile(reference){
   showPage('pg-dash');
   var adminNav=document.getElementById('nav-admin');var mobAdmin=document.getElementById('mob-admin');
+  var staffNav=document.getElementById('nav-staff');var mobStaff=document.getElementById('mob-staff');
   if(adminNav)adminNav.style.display=isAdmin()?'':'none';
   if(mobAdmin)mobAdmin.style.display=isAdmin()?'':'none';
+  if(staffNav)staffNav.style.display=isAdmin()?'':'none';
+  if(mobStaff)mobStaff.style.display=isAdmin()?'':'none';
   try{
     // Poll up to 10 s for the Paystack webhook to process the payment
     for(var i=0;i<10;i++){var vr=await fetchWithRefresh(API_URL+'/payments/verify/'+reference,{});if(vr.ok){var vd=await vr.json();if(vd.status==='success')break;}if(i<9)await new Promise(function(r){setTimeout(r,1000);});}
@@ -961,6 +1016,142 @@ async function doAdminDeleteConfirm(){
     else{var data=await res.json();errEl.textContent=(data.error&&data.error.message)||'Could not delete profile. Please try again.';errEl.style.display='block';}
   }catch(e){errEl.textContent='Network error. Please try again.';errEl.style.display='block';}
   btn.disabled=false;btn.textContent='Delete';
+}
+/* ── Staff panel ─────────────────────────────────────────────────────────── */
+var _staffCache={};
+async function renderStaff(){
+  if(!isAdmin())return;
+  var tb=document.getElementById('staffBody');if(!tb)return;
+  tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--g400)">Loading…</td></tr>';
+  try{
+    var res=await fetchWithRefresh(API_URL+'/admin/staff',{});
+    if(!res.ok){tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--g400)">Could not load staff.</td></tr>';return;}
+    var data=await res.json();
+    var staff=data.staff||[];
+    _staffCache={};staff.forEach(function(s){_staffCache[s.id]=s;});
+    if(!staff.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--g400)">No staff records. Click “+ Add staff” to add one.</td></tr>';return;}
+    var bs='padding:3px 9px;border:1px solid #e5e7eb;border-radius:4px;font-size:11px;background:transparent;cursor:pointer;color:#374151;font-family:Inter,sans-serif';
+    var bsGreen='padding:3px 9px;border:1px solid var(--green);border-radius:4px;font-size:11px;background:transparent;cursor:pointer;color:var(--green);font-family:Inter,sans-serif;font-weight:600';
+    var bsRed='padding:3px 9px;border:1px solid #dc2626;border-radius:4px;font-size:11px;background:transparent;cursor:pointer;color:#dc2626;font-family:Inter,sans-serif;font-weight:600';
+    tb.innerHTML=staff.map(function(s){
+      var ph=s.photo_url
+        ?'<img style="width:36px;height:44px;object-fit:cover;border:2px solid #3a9e4f;border-radius:4px" src="'+s.photo_url+'" alt="'+s.full_name+'">'
+        :"<div style='width:36px;height:44px;background:#e8f5e9;border:2px solid #e5e7eb;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px'>&#128100;</div>";
+      var sig=s.signature_url
+        ?'<img style="height:36px;max-width:100px;object-fit:contain;border:1px solid #e5e7eb;border-radius:4px;background:#fff;padding:2px" src="'+s.signature_url+'" alt="Signature">'
+        :'<span style="font-size:11px;color:#9ca3af">—</span>';
+      var safeName=s.full_name.replace(/'/g,"\\'");
+      return '<tr style="border-bottom:1px solid #f3f4f6">'
+        +'<td style="padding:10px 13px;vertical-align:middle">'+ph+'</td>'
+        +'<td style="padding:10px 13px;vertical-align:middle"><strong>'+s.full_name+'</strong></td>'
+        +'<td style="padding:10px 13px;vertical-align:middle;font-size:12px;color:#374151">'+s.department+'</td>'
+        +'<td style="padding:10px 13px;vertical-align:middle">'+sig+'</td>'
+        +'<td style="padding:10px 13px;vertical-align:middle"><div style="display:flex;flex-wrap:wrap;gap:4px">'
+        +'<button style="'+bsGreen+'" onclick="staffOpenPhoto(\''+s.id+'\')">Upload photo</button>'
+        +'<button style="'+bs+'" onclick="staffOpenSig(\''+s.id+'\')">Upload signature</button>'
+        +'<button style="'+bsRed+'" onclick="staffDelete(\''+s.id+'\',\''+safeName+'\')">Delete</button>'
+        +'</div></td>'
+        +'</tr>';
+    }).join('');
+  }catch(e){tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--g400)">Error loading staff.</td></tr>';}
+}
+function staffOpenAdd(){
+  document.getElementById('staff-add-name').value='';
+  document.getElementById('staff-add-dept').value='';
+  document.getElementById('staff-add-err').style.display='none';
+  document.getElementById('modal-staff-add').style.display='flex';
+}
+function closeStaffAddModal(){document.getElementById('modal-staff-add').style.display='none';}
+async function doStaffAdd(){
+  var btn=document.getElementById('staff-add-btn');
+  var errEl=document.getElementById('staff-add-err');
+  var name=document.getElementById('staff-add-name').value.trim();
+  var dept=document.getElementById('staff-add-dept').value.trim();
+  errEl.style.display='none';
+  if(!name){errEl.textContent='Please enter a full name.';errEl.style.display='block';return;}
+  if(!dept){errEl.textContent='Please enter a department.';errEl.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Adding…';
+  try{
+    var res=await fetchWithRefresh(API_URL+'/admin/staff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name:name,department:dept})});
+    var data=await res.json();
+    if(res.ok){closeStaffAddModal();await renderStaff();}
+    else{errEl.textContent=(data.error&&data.error.message)||'Could not add staff member.';errEl.style.display='block';}
+  }catch(e){errEl.textContent='Network error. Please try again.';errEl.style.display='block';}
+  btn.disabled=false;btn.textContent='Add staff member';
+}
+var _staffPhotoId=null;
+function staffOpenPhoto(staffId){
+  _staffPhotoId=staffId;
+  document.getElementById('staff-photo-input').value='';
+  document.getElementById('staff-photo-preview').style.display='none';
+  document.getElementById('staff-photo-err').style.display='none';
+  document.getElementById('modal-staff-photo').style.display='flex';
+}
+function closeStaffPhotoModal(){document.getElementById('modal-staff-photo').style.display='none';_staffPhotoId=null;}
+function handleStaffPhotoSelect(file){
+  if(!file)return;
+  var errEl=document.getElementById('staff-photo-err');errEl.style.display='none';
+  if(file.size>5*1024*1024){errEl.textContent='Photo must be under 5 MB.';errEl.style.display='block';return;}
+  var r=new FileReader();
+  r.onload=function(ev){var prev=document.getElementById('staff-photo-preview');prev.src=ev.target.result;prev.style.display='block';};
+  r.readAsDataURL(file);
+}
+async function doStaffPhotoUpload(){
+  var input=document.getElementById('staff-photo-input');
+  var btn=document.getElementById('staff-photo-btn');
+  var errEl=document.getElementById('staff-photo-err');
+  errEl.style.display='none';
+  if(!input.files||!input.files[0]){errEl.textContent='Please select a photo file.';errEl.style.display='block';return;}
+  var form=new FormData();form.append('photo',input.files[0],input.files[0].name);
+  btn.disabled=true;btn.textContent='Uploading…';
+  try{
+    var res=await fetchWithRefresh(API_URL+'/admin/staff/'+_staffPhotoId+'/photo',{method:'POST',body:form});
+    var data=await res.json();
+    if(res.ok){closeStaffPhotoModal();await renderStaff();}
+    else{errEl.textContent=(data.error&&data.error.message)||'Upload failed. Please try again.';errEl.style.display='block';}
+  }catch(e){errEl.textContent='Network error. Please try again.';errEl.style.display='block';}
+  btn.disabled=false;btn.textContent='Upload photo';
+}
+var _staffSigId=null;
+function staffOpenSig(staffId){
+  _staffSigId=staffId;
+  document.getElementById('staff-sig-input').value='';
+  document.getElementById('staff-sig-preview').style.display='none';
+  document.getElementById('staff-sig-err').style.display='none';
+  document.getElementById('modal-staff-sig').style.display='flex';
+}
+function closeStaffSigModal(){document.getElementById('modal-staff-sig').style.display='none';_staffSigId=null;}
+function handleStaffSigSelect(file){
+  if(!file)return;
+  var errEl=document.getElementById('staff-sig-err');errEl.style.display='none';
+  if(file.size>5*1024*1024){errEl.textContent='Image must be under 5 MB.';errEl.style.display='block';return;}
+  var r=new FileReader();
+  r.onload=function(ev){var prev=document.getElementById('staff-sig-preview');prev.src=ev.target.result;prev.style.display='block';};
+  r.readAsDataURL(file);
+}
+async function doStaffSigUpload(){
+  var input=document.getElementById('staff-sig-input');
+  var btn=document.getElementById('staff-sig-btn');
+  var errEl=document.getElementById('staff-sig-err');
+  errEl.style.display='none';
+  if(!input.files||!input.files[0]){errEl.textContent='Please select an image file.';errEl.style.display='block';return;}
+  var form=new FormData();form.append('signature',input.files[0],input.files[0].name);
+  btn.disabled=true;btn.textContent='Uploading…';
+  try{
+    var res=await fetchWithRefresh(API_URL+'/admin/staff/'+_staffSigId+'/signature',{method:'POST',body:form});
+    var data=await res.json();
+    if(res.ok){closeStaffSigModal();await renderStaff();}
+    else{errEl.textContent=(data.error&&data.error.message)||'Upload failed. Please try again.';errEl.style.display='block';}
+  }catch(e){errEl.textContent='Network error. Please try again.';errEl.style.display='block';}
+  btn.disabled=false;btn.textContent='Upload signature';
+}
+async function staffDelete(staffId,name){
+  if(!confirm('Delete '+name+'? This cannot be undone.'))return;
+  try{
+    var res=await fetchWithRefresh(API_URL+'/admin/staff/'+staffId,{method:'DELETE'});
+    if(res.ok||res.status===204){await renderStaff();}
+    else{alert('Could not delete staff member. Please try again.');}
+  }catch(e){alert('Network error. Please try again.');}
 }
 /* ── Update profile modal ────────────────────────────────────────────────── */
 function showUpdateModal(){
