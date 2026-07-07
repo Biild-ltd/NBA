@@ -313,6 +313,29 @@ async def get_audit_log(
 
 # ── Staff endpoints ───────────────────────────────────────────────────────────
 
+@router.get("/staff/export/xlsx")
+async def export_staff_xlsx(
+    current_user: dict = Depends(require_admin),
+) -> Response:
+    """Excel export of all staff with embedded photos, signatures, and QR codes."""
+    data = await staff_service.export_staff_xlsx()
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="staff.xlsx"'},
+    )
+
+
+@router.post("/staff/{staff_id}/regenerate-qr", response_model=StaffMember)
+async def regenerate_staff_qr(
+    staff_id: str,
+    current_user: dict = Depends(require_admin),
+) -> StaffMember:
+    """Regenerate and re-upload the QR code for a staff member."""
+    row = await staff_service.regenerate_qr(staff_id)
+    return StaffMember(**row)
+
+
 @router.get("/staff", response_model=StaffListResponse)
 async def list_staff(
     current_user: dict = Depends(require_admin),

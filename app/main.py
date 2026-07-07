@@ -13,7 +13,7 @@ from slowapi.errors import RateLimitExceeded
 from app.config import settings
 from app.db.postgres import close_pool, open_pool
 from app.limiter import limiter
-from app.routers import admin, auth, payments, photos, profiles, qr, utility
+from app.routers import admin, auth, payments, photos, profiles, qr, staff_public, utility
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -130,6 +130,7 @@ async def request_logging_middleware(request: Request, call_next):
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(utility.router, prefix="/v1")
+app.include_router(staff_public.router, prefix="/v1")
 app.include_router(auth.router, prefix="/v1")
 app.include_router(profiles.router, prefix="/v1")
 app.include_router(photos.router, prefix="/v1")

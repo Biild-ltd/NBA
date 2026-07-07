@@ -91,6 +91,7 @@ class StaffMember(BaseModel):
     department: str
     photo_url: str | None
     signature_url: str | None
+    qr_code_url: str | None
     created_at: datetime
 
     @field_validator("id", mode="before")

@@ -52,6 +52,12 @@ async def upload_staff_photo(staff_id: str, data: bytes, content_type: str) -> s
     return await asyncio.to_thread(_upload_sync, path, data, content_type)
 
 
+async def upload_staff_qr(staff_id: str, data: bytes) -> str:
+    """Upload a staff QR code PNG. Storage path: staff/qrcodes/{staff_id}/qr.png"""
+    path = f"staff/qrcodes/{staff_id}/qr.png"
+    return await asyncio.to_thread(_upload_sync, path, data, "image/png")
+
+
 async def upload_staff_signature(staff_id: str, data: bytes, content_type: str) -> str:
     """Upload a staff signature image. Storage path: staff/signatures/{staff_id}/sig.(jpg|png)"""
     extension = "jpg" if "jpeg" in content_type else "png"
