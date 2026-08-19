@@ -16,6 +16,7 @@ _MEMBER_UID = "NBA-ABC123-XYZ12345"
 
 _PROFILE_ROW = {
     "id": _MEMBER_ID,
+    "member_index": 1,
     "member_uid": _MEMBER_UID,
     "full_name": "Test Member",
     "branch": "Lagos",

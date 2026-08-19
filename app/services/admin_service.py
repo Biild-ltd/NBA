@@ -22,7 +22,7 @@ from app.services import photo_service, qr_service, storage_service
 
 logger = logging.getLogger(__name__)
 
-_SORT_FIELDS = {"created_at", "full_name", "branch"}
+_SORT_FIELDS = {"created_at", "full_name", "branch", "member_index"}
 _ENROLLMENT_RE = re.compile(r"^[A-Za-z0-9/\-]+$")
 
 
@@ -630,7 +630,7 @@ def _build_xlsx(rows: list[dict], photo_bufs: list[io.BytesIO | None]) -> bytes:
     ws.title = "Members"
 
     headers = [
-        "Full Name", "Branch", "Year of Call", "Enrollment No.",
+        "Index", "Full Name", "Branch", "Year of Call", "Enrollment No.",
         "Email", "Phone", "Status", "Payment", "QR Code", "Photo",
     ]
     ws.append(headers)
@@ -643,7 +643,7 @@ def _build_xlsx(rows: list[dict], photo_bufs: list[io.BytesIO | None]) -> bytes:
         cell.alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 22
 
-    col_widths = [28, 14, 12, 16, 28, 16, 10, 10, 12, 14]
+    col_widths = [10, 28, 14, 12, 16, 28, 16, 10, 10, 12, 14]
     for i, w in enumerate(col_widths, start=1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
 
@@ -651,6 +651,7 @@ def _build_xlsx(rows: list[dict], photo_bufs: list[io.BytesIO | None]) -> bytes:
 
     for row_num, (m, qr_buf, photo_buf) in enumerate(zip(rows, qr_bufs, photo_resized), start=2):
         ws.append([
+            m.get("member_index", ""),
             m.get("full_name", ""),
             m.get("branch", ""),
             m.get("year_of_call", ""),
@@ -659,7 +660,7 @@ def _build_xlsx(rows: list[dict], photo_bufs: list[io.BytesIO | None]) -> bytes:
             m.get("phone_number", ""),
             m.get("status", ""),
             m.get("payment_status", ""),
-            "", "",  # placeholders for QR (I) and Photo (J)
+            "", "",  # placeholders for QR (J) and Photo (K)
         ])
         ws.row_dimensions[row_num].height = ROW_H
 
@@ -667,13 +668,13 @@ def _build_xlsx(rows: list[dict], photo_bufs: list[io.BytesIO | None]) -> bytes:
             xl_img = XLImage(qr_buf)
             xl_img.width = QR_DISP_PX
             xl_img.height = QR_DISP_PX
-            ws.add_image(xl_img, f"I{row_num}")
+            ws.add_image(xl_img, f"J{row_num}")
 
         if photo_buf:
             xl_img = XLImage(photo_buf)
             xl_img.width = PHOTO_DISP_W
             xl_img.height = PHOTO_DISP_H
-            ws.add_image(xl_img, f"J{row_num}")
+            ws.add_image(xl_img, f"K{row_num}")
 
     out = io.BytesIO()
     wb.save(out)
@@ -684,8 +685,8 @@ async def export_xlsx(
     status_filter: str | None = None,
     branch: str | None = None,
     payment_status: str | None = None,
-    limit: int | None = None,
-    offset: int = 0,
+    index_from: int | None = None,
+    index_to: int | None = None,
 ) -> bytes:
     conditions: list[str] = []
     params: list = []
@@ -704,17 +705,21 @@ async def export_xlsx(
         params.append(payment_status)
         idx += 1
 
+    if index_from is not None and index_to is not None:
+        lo = max(1, min(index_from, index_to))
+        hi = max(index_from, index_to)
+        hi = min(hi, lo + 4999)  # cap span at 5000 rows, matching prior limit cap
+        conditions.append(f"member_index BETWEEN ${idx} AND ${idx + 1}")
+        params.append(lo)
+        params.append(hi)
+        idx += 2
+
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-    limit_clause = ""
-    if limit is not None and limit > 0:
-        limit_clause = f" LIMIT ${idx} OFFSET ${idx + 1}"
-        params.append(min(limit, 5000))
-        params.append(max(offset, 0))
 
     pool = await get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            f"SELECT * FROM public.member_profiles {where} ORDER BY created_at DESC{limit_clause}",
+            f"SELECT * FROM public.member_profiles {where} ORDER BY member_index ASC",
             *params,
         )
 

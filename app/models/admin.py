@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class AdminMemberSummary(BaseModel):
     id: str
+    member_index: int
     member_uid: str
     full_name: str
     branch: str

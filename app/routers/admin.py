@@ -252,17 +252,21 @@ async def export_members_xlsx(
     status: str | None = None,
     branch: str | None = None,
     payment_status: str | None = None,
-    limit: int | None = None,
-    offset: int = 0,
+    index_from: int | None = None,
+    index_to: int | None = None,
     current_user: dict = Depends(require_admin),
 ) -> Response:
-    """Excel export with QR codes embedded as images — opens correctly in Excel, Numbers, LibreOffice."""
+    """Excel export with QR codes embedded as images — opens correctly in Excel, Numbers, LibreOffice.
+
+    index_from/index_to filter by the permanent member_index range (e.g. 6500-6800),
+    which always resolves to the same members regardless of new signups in between exports.
+    """
     data = await admin_service.export_xlsx(
         status_filter=status,
         branch=branch,
         payment_status=payment_status,
-        limit=limit,
-        offset=offset,
+        index_from=index_from,
+        index_to=index_to,
     )
     return Response(
         content=data,
