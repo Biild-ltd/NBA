@@ -808,8 +808,8 @@ async function renderAdmin(){
   var tb=document.getElementById('adminBody');
   try{
     var [membersRes,statsRes]=await Promise.all([
-      fetch(API_URL+'/admin/members'+params,{headers:authHeader()}),
-      fetch(API_URL+'/admin/stats',{headers:authHeader()}),
+      fetchWithRefresh(API_URL+'/admin/members'+params,{}),
+      fetchWithRefresh(API_URL+'/admin/stats',{}),
     ]);
     if(!membersRes.ok){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--g400)">Could not load members.</td></tr>';return;}
     var data=await membersRes.json();
