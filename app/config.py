@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str
 
     # ── App ───────────────────────────────────────────────────────────────────
-    MEMBERSHIP_FEE_KOBO: int = 500000
+    MEMBERSHIP_FEE_KOBO: int = 250000
     PUBLIC_BASE_URL: str = "http://localhost:8000"
     FRONTEND_ORIGIN: str = ""
     ENVIRONMENT: str = "development"
